@@ -4,7 +4,7 @@ run-name: build and copy to gpac
 on:
   push:
     branches:
-      - release
+      - ci/test
   workflow_dispatch:
 
 jobs:
@@ -31,13 +31,13 @@ jobs:
       - name: Checkout GPAC Repo
         uses: actions/checkout@v4
         with:
-          repository: gpac/gpac
-          token: ${{ secrets.GPAC_MONITOR_BUILDBOT }}
+          repository: PierreDillard/gpac
+          token: ${{ secrets.GPAC_MONITOR }}
           path: gpac
 
       - name: Create PR
         env:
-          GH_TOKEN: ${{ secrets.GPAC_MONITOR_BUILDBOT }}
+          GH_TOKEN: ${{ secrets.GPAC_MONITOR }}
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
           COMMIT_MSG=$(git log -1 --pretty=%s)
@@ -63,8 +63,16 @@ jobs:
           # Move to target, configure git
           cd gpac
           mkdir -p "$TARGET_DIR"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          AUTHOR_NAME="${{ github.event.head_commit.author.name }}"
+          AUTHOR_EMAIL="${{ github.event.head_commit.author.email }}"
+
+          if [ -z "$AUTHOR_NAME" ]; then AUTHOR_NAME="${{ github.actor }}"; fi
+          if [ -z "$AUTHOR_EMAIL" ]; then
+            AUTHOR_EMAIL="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          fi
+
+          git config user.name "$AUTHOR_NAME"
+          git config user.email "$AUTHOR_EMAIL"
           git checkout -b $BRANCH_NAME
 
           # Replace old files with new build
@@ -82,7 +90,7 @@ jobs:
               --body-file ../pr_description.md \
               --base master \
               --head $BRANCH_NAME \
-              --repo gpac/gpac
+              --repo PierreDillard/gpac
           else
             echo "No changes detected, skipping PR."
           fi
