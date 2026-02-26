@@ -441,6 +441,15 @@ function PidDataCollector() {
       pid.would_block = filter.ipid_props(i, "would_block");
       pid.eos = filter.ipid_props(i, "eos");
       pid.playing = filter.ipid_props(i, "playing");
+      pid.timescale = filter.ipid_props(i, "Timescale");
+      pid.codec = filter.ipid_props(i, "CodecID");
+      pid.type = filter.ipid_props(i, "StreamType");
+      pid.width = filter.ipid_props(i, "Width");
+      pid.height = filter.ipid_props(i, "Height");
+      pid.pixelformat = filter.ipid_props(i, "PixelFormat");
+      pid.bitrate = filter.ipid_props(i, "Bitrate");
+      pid.samplerate = filter.ipid_props(i, "SampleRate");
+      pid.channels = filter.ipid_props(i, "Channels");
       const source = filter.ipid_source(i);
       if (source) {
         pid.source_idx = source.idx;
