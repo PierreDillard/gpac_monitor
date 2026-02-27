@@ -89,7 +89,7 @@ function FilterManager(client) {
                     payload[field] = fObj[field];
                 }
 
-                // Switch based on pidScope
+              
                 switch (sub.pidScope) {
                     case 'ipid':
                         payload.ipids = this.pidDataCollector.collectInputPids(fObj);

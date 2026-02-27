@@ -40,7 +40,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GPAC_MONITOR }}
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
-          COMMIT_MSG=$(git log -1 --pretty=%s)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
 
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
@@ -55,9 +55,12 @@ jobs:
 
           **Details:**
           - **Triggered by commit:** [\`$SHORT_SHA\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
-          - **Commit message:** $COMMIT_MSG
-          - **Worflow logs:** [run ${{ github.run_id }}]($RUN_URL)
+          - **Workflow logs:** [run ${{ github.run_id }}]($RUN_URL)
 
+          **Merge commit message (full):**
+          \`\`\`
+          $COMMIT_MSG
+          \`\`\`
           EOF
 
           # Move to target, configure git
@@ -81,7 +84,9 @@ jobs:
           # Commit if changes exist
           if [[ -n "$(git status --porcelain)" ]]; then
             git add "$TARGET_DIR"/*
-            git commit -m "gpac_monitor: update to gpac_monitor@$SHORT_SHA"
+            git commit -m "gpac_monitor: update to gpac_monitor@$SHORT_SHA" \
+           -m "$COMMIT_MSG" \
+           -m "[noCI]"
             git push origin $BRANCH_NAME
 
             # Create the PR
