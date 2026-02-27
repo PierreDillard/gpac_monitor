@@ -737,7 +737,7 @@ import { Sys as sys3 } from "gpaccore";
 function LogManager(client) {
   this.client = client;
   this.isSubscribed = false;
-  this.logLevel = "all@quiet";
+  this.logLevel = "all@warning";
   this.originalLogConfig = null;
   this.pendingLogs = [];
   this.batchTimer = null;
