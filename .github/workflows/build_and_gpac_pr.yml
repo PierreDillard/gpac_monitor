@@ -58,11 +58,11 @@ jobs:
           - **Workflow logs:** [run ${{ github.run_id }}]($RUN_URL)
 
           **Merge commit message (full):**
+
           \`\`\`
           $COMMIT_MSG
           \`\`\`
           EOF
-
           # Move to target, configure git
           cd gpac
           mkdir -p "$TARGET_DIR"
