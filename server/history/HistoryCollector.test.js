@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Sys as sys } from 'gpaccore';
 import { HistoryCollector } from './HistoryCollector.js';
+import { HistorySessionWriter } from './HistorySessionWriter.js';
 
 const DAY_US = 24 * 60 * 60 * 1000 * 1000;
 
@@ -8,6 +9,13 @@ function makeCollector() {
   const collector = new HistoryCollector('test-history');
   collector.writer.writeLog = vi.fn();
   collector.writer.recordJournalFact = vi.fn();
+  return collector;
+}
+
+function wireSessionWriter(collector) {
+  collector.writer = new HistorySessionWriter('test-history', undefined, {
+    buildSegmentSnapshot: (rolloverTsUs) => collector._buildRolloverSnapshot(rolloverTsUs),
+  });
   return collector;
 }
 

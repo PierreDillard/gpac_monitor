@@ -1,5 +1,5 @@
 import { Sys as sys } from 'gpaccore';
-import { HistorySessionWriter } from './HistorySessionWriter.js';
+import { HistoryWriter } from './HistoryWriter.js';
 import { SnapshotBuilder } from './SnapshotBuilder.js';
 import { PidDataCollector } from '../JSClient/Filters/PID/PidDataCollector.js';
 import { logHub } from '../JSClient/Sys/Utils/LogHub.js';
@@ -13,9 +13,7 @@ const LOG_LEVEL_WARNING = 2;
 function HistoryCollector(historyDir) {
     this.snapshotBuilder = new SnapshotBuilder();
     this._graphVersion = null;
-    this.writer = new HistorySessionWriter(historyDir, undefined, {
-        buildSegmentSnapshot: (rolloverTsUs) => this._buildRolloverSnapshot(rolloverTsUs),
-    });
+    this.writer = new HistoryWriter(historyDir);
     this.pidCollector = new PidDataCollector();
     this.snapshotWritten = false;
     this.lastRecordUs = 0;
