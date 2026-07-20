@@ -1,13 +1,44 @@
 import * as os from 'os';
 import { HistoryWriter, writeFileAtomic } from './HistoryWriter.js';
 import { buildJournalPointer, serializeJournalIndex } from './helpers/journalIndex.js';
-import { SEGMENT_DURATION_US, DEFAULT_RETENTION_MAX_SEGMENTS } from '../config/history.config.js';
+import {
+    SEGMENT_DURATION_US,
+    DEFAULT_RETENTION_MAX_SEGMENTS,
+    HISTORY_RETENTION_UNLIMITED,
+} from '../config/history.config.js';
 
-function HistorySessionWriter(historyDir, sessionId) {
+function removeAllInDir(subDir) {
+    const [entries, err] = os.readdir(subDir);
+    if (err) return;
+    for (const entry of entries) {
+        if (entry === '.' || entry === '..') continue;
+        os.remove(`${subDir}/${entry}`);
+    }
+}
+
+function removeSegmentDir(sessionDir, segmentDir) {
+    const dir = `${sessionDir}/${segmentDir}`;
+    removeAllInDir(`${dir}/chunks`);
+    removeAllInDir(`${dir}/logs`);
+    removeAllInDir(`${dir}/checkpoints`);
+    os.remove(`${dir}/chunks`);
+    os.remove(`${dir}/logs`);
+    os.remove(`${dir}/checkpoints`);
+    os.remove(`${dir}/manifest.json`);
+    os.remove(`${dir}/snapshot.json`);
+    os.remove(`${dir}/done`);
+    os.remove(dir);
+}
+
+function HistorySessionWriter(historyDir, sessionId, options) {
     const baseDir = historyDir || 'history';
     const id = sessionId || String(Date.now());
     const dir = `${baseDir}/${id}`;
     const segmentsDir = `${dir}/segments`;
+    const retentionMaxSegments = (options && options.retentionMaxSegments !== undefined)
+        ? options.retentionMaxSegments
+        : DEFAULT_RETENTION_MAX_SEGMENTS;
+    const buildSegmentSnapshot = options && options.buildSegmentSnapshot;
 
     this.sessionId = id;
     this.sessionDir = dir;
@@ -42,6 +73,43 @@ function HistorySessionWriter(historyDir, sessionId) {
         if (segment.fromUs === null) segment.fromUs = tsUs;
     };
 
+    this._checkRollover = function(tsUs) {
+        const segment = this._currentSegment();
+        if (segment.fromUs !== null && tsUs - segment.fromUs >= SEGMENT_DURATION_US) {
+            this._rollover(tsUs);
+        }
+    };
+
+    this._rollover = function(tsUs) {
+        const segment = this._currentSegment();
+        this._segmentWriter.close();
+        segment.toUs = tsUs;
+        segment.done = true;
+
+        const nextIndex = segment.index + 1;
+        const padded = String(nextIndex).padStart(4, '0');
+        this._segmentWriter = new HistoryWriter(segmentsDir, padded);
+        this._segments.push({ index: nextIndex, dir: `segments/${padded}`, fromUs: tsUs, toUs: null, pinned: false, done: false });
+
+        if (buildSegmentSnapshot) {
+            const snapshot = buildSegmentSnapshot(tsUs);
+            if (snapshot) this._segmentWriter.writeSnapshot(snapshot);
+        }
+
+        this._purgeRetention();
+        this.writeSessionIndex();
+    };
+
+    this._purgeRetention = function() {
+        if (retentionMaxSegments === HISTORY_RETENTION_UNLIMITED) return;
+        while (this._segments.filter((segment) => !segment.pinned).length > retentionMaxSegments) {
+            const targetIndex = this._segments.findIndex((segment) => !segment.pinned);
+            if (targetIndex === -1) break;
+            const [target] = this._segments.splice(targetIndex, 1);
+            removeSegmentDir(dir, target.dir);
+        }
+    };
+
     this._getEventsIndexPointer = function() {
         if (this._eventsIndex.length === 0) return undefined;
         return { file: 'events_index.json', format: 'array-v1', eventCount: this._eventsIndex.length };
@@ -69,7 +137,7 @@ function HistorySessionWriter(historyDir, sessionId) {
             startUs: this._sessionStartUs,
             endUs: this._lastEventUs,
             segmentDurationUs: SEGMENT_DURATION_US,
-            retention: { maxSegments: DEFAULT_RETENTION_MAX_SEGMENTS },
+            retention: { maxSegments: retentionMaxSegments },
             segments: this._segments.map((segment) => ({ ...segment })),
             eventsIndex: this._getEventsIndexPointer(),
             journalIndex: buildJournalPointer(this._journalTsUs, this._journalTypes),
@@ -86,12 +154,15 @@ function HistorySessionWriter(historyDir, sessionId) {
         this._init();
         this._updateTimestamps(tsUs);
         this._segmentWriter.writeLog(jsonString, tsUs);
+        this._checkRollover(tsUs);
     };
 
     this.writeEvent = function(jsonString, tsUs) {
         this._init();
         this._updateTimestamps(tsUs);
-        return this._segmentWriter.writeEvent(jsonString, tsUs);
+        const rotated = this._segmentWriter.writeEvent(jsonString, tsUs);
+        this._checkRollover(tsUs);
+        return rotated;
     };
 
     this.writeCheckpoint = function(chunkIndex, obj) {

@@ -105,3 +105,105 @@ describe('HistorySessionWriter session.json', () => {
     openSpy.mockRestore();
   });
 });
+
+describe('HistorySessionWriter segment rollover', () => {
+  const DAY_US = 24 * 60 * 60 * 1000 * 1000;
+
+  it('rolls over to segment 1 once 24h have elapsed since segment 0 started, sealing segment 0', () => {
+    const writer = new HistorySessionWriter('test-history', 'sessI');
+
+    writer.writeEvent('{"a":1}', 0);
+    writer.writeEvent('{"a":2}', DAY_US);
+
+    expect(writer._segments).toEqual([
+      { index: 0, dir: 'segments/0000', fromUs: 0, toUs: DAY_US, pinned: false, done: true },
+      { index: 1, dir: 'segments/0001', fromUs: DAY_US, toUs: null, pinned: false, done: false },
+    ]);
+  });
+
+  it('closes segment 0 (manifest + done marker) before creating segment 1', () => {
+    const writer = new HistorySessionWriter('test-history', 'sessJ');
+    writer.writeEvent('{"a":1}', 0);
+
+    const openSpy = vi.spyOn(std, 'open');
+    writer.writeEvent('{"a":2}', DAY_US);
+
+    const paths = openSpy.mock.calls.map(([path]) => path);
+    expect(paths.some((path) => path.endsWith('segments/0000/manifest.json.tmp'))).toBe(true);
+    expect(paths.some((path) => path.endsWith('segments/0000/done'))).toBe(true);
+
+    openSpy.mockRestore();
+  });
+
+  it('writes session.json during rollover', () => {
+    const writer = new HistorySessionWriter('test-history', 'sessK');
+    writer.writeEvent('{"a":1}', 0);
+
+    const writeSessionIndexSpy = vi.spyOn(writer, 'writeSessionIndex');
+    writer.writeEvent('{"a":2}', DAY_US);
+
+    expect(writeSessionIndexSpy).toHaveBeenCalled();
+  });
+
+  it('purges the oldest unpinned segment beyond retention.maxSegments, never reusing indices', () => {
+    const writer = new HistorySessionWriter('test-history', 'sessL', { retentionMaxSegments: 2 });
+
+    writer.writeEvent('{"a":1}', 0);
+    writer.writeEvent('{"a":2}', DAY_US);
+    writer.writeEvent('{"a":3}', DAY_US * 2);
+    writer.writeEvent('{"a":4}', DAY_US * 3);
+
+    expect(writer._segments.map((segment) => segment.index)).toEqual([2, 3]);
+  });
+
+  it('skips retention purge entirely when maxSegments is HISTORY_RETENTION_UNLIMITED', () => {
+    const writer = new HistorySessionWriter('test-history', 'sessM', { retentionMaxSegments: -1 });
+
+    writer.writeEvent('{"a":1}', 0);
+    writer.writeEvent('{"a":2}', DAY_US);
+    writer.writeEvent('{"a":3}', DAY_US * 2);
+
+    expect(writer._segments.map((segment) => segment.index)).toEqual([0, 1, 2]);
+  });
+
+  it('rolls over fine with no buildSegmentSnapshot provider (optional)', () => {
+    const writer = new HistorySessionWriter('test-history', 'sessN');
+
+    expect(() => {
+      writer.writeEvent('{"a":1}', 0);
+      writer.writeEvent('{"a":2}', DAY_US);
+    }).not.toThrow();
+  });
+
+  it('writes the segment snapshot returned by buildSegmentSnapshot into the new segment', () => {
+    const buildSegmentSnapshot = vi.fn((rolloverTsUs) => ({ version: 1, ts_us: rolloverTsUs, filters: [] }));
+    const writer = new HistorySessionWriter('test-history', 'sessO', { buildSegmentSnapshot });
+    writer.writeEvent('{"a":1}', 0);
+
+    const openSpy = vi.spyOn(std, 'open');
+    writer.writeEvent('{"a":2}', DAY_US);
+
+    expect(buildSegmentSnapshot).toHaveBeenCalledWith(DAY_US);
+    const paths = openSpy.mock.calls.map(([path]) => path);
+    expect(paths.some((path) => path.endsWith('segments/0001/snapshot.json'))).toBe(true);
+
+    openSpy.mockRestore();
+  });
+
+  it('writes the new segment snapshot before publishing session.json', () => {
+    const order = [];
+    const buildSegmentSnapshot = vi.fn((rolloverTsUs) => {
+      order.push('buildSegmentSnapshot');
+      return { version: 1, ts_us: rolloverTsUs, filters: [] };
+    });
+    const writer = new HistorySessionWriter('test-history', 'sessP', { buildSegmentSnapshot });
+    writer.writeEvent('{"a":1}', 0);
+
+    const originalWriteSessionIndex = writer.writeSessionIndex.bind(writer);
+    writer.writeSessionIndex = () => { order.push('writeSessionIndex'); originalWriteSessionIndex(); };
+
+    writer.writeEvent('{"a":2}', DAY_US);
+
+    expect(order).toEqual(['buildSegmentSnapshot', 'writeSessionIndex']);
+  });
+});

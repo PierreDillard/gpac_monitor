@@ -1,5 +1,6 @@
 import { Sys as sys } from 'gpaccore';
-import { HistoryWriter } from './HistoryWriter.js';
+import { HistorySessionWriter } from './HistorySessionWriter.js';
+import { SnapshotBuilder } from './SnapshotBuilder.js';
 import { PidDataCollector } from '../JSClient/Filters/PID/PidDataCollector.js';
 import { logHub } from '../JSClient/Sys/Utils/LogHub.js';
 import { RATE_LIMIT_US, MAX_LOG_MESSAGE_LENGTH } from '../config/history.config.js';
@@ -10,7 +11,11 @@ const LOG_LEVEL_ERROR = 1;
 const LOG_LEVEL_WARNING = 2;
 
 function HistoryCollector(historyDir) {
-    this.writer = new HistoryWriter(historyDir);
+    this.snapshotBuilder = new SnapshotBuilder();
+    this._graphVersion = null;
+    this.writer = new HistorySessionWriter(historyDir, undefined, {
+        buildSegmentSnapshot: (rolloverTsUs) => this._buildRolloverSnapshot(rolloverTsUs),
+    });
     this.pidCollector = new PidDataCollector();
     this.snapshotWritten = false;
     this.lastRecordUs = 0;
@@ -63,7 +68,16 @@ this._onChunkRotated = function() {
         this.snapshotWritten = true;
     };
 
+    this._buildRolloverSnapshot = function(rolloverTsUs) {
+        let commandLine = null;
+        try { commandLine = sys.args ? sys.args.join(' ') : null; } catch (_e) {}
+        const snapshot = this.snapshotBuilder.build(this._graphVersion, commandLine);
+        snapshot.ts_us = rolloverTsUs;
+        return snapshot;
+    };
+
 this.recordGraph = function(filters, filterInstances, graphVersion) {
+    this._graphVersion = graphVersion;
     // Builds the full graph payload used by snapshot and "filters" events.
     const pidCollector = new PidDataCollector();
 
