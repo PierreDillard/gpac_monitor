@@ -34,6 +34,26 @@ export function parseManifest(raw: unknown): HistoryManifest {
     throw new Error('[ManifestParser] chunkCount must be a positive number');
   }
 
+  let eventChunks: HistoryManifestChunk[] | undefined;
+  if (Array.isArray(data['eventChunks'])) {
+    const rawChunks = data['eventChunks'] as unknown[];
+    const validChunks = rawChunks.filter(
+      (chunk): chunk is HistoryManifestChunk => {
+        if (!chunk || typeof chunk !== 'object') return false;
+        const chk = chunk as Record<string, unknown>;
+        return (
+          typeof chk['file'] === 'string' &&
+          typeof chk['fromUs'] === 'number' &&
+          typeof chk['toUs'] === 'number' &&
+          (chk['fromUs'] as number) <= (chk['toUs'] as number)
+        );
+      },
+    );
+    if (validChunks.length === rawChunks.length && validChunks.length > 0) {
+      eventChunks = validChunks;
+    }
+  }
+
   const logChunks: HistoryManifestChunk[] = Array.isArray(data['logChunks'])
     ? (data['logChunks'] as unknown[]).filter(
         (chunk): chunk is HistoryManifestChunk => {
@@ -93,6 +113,7 @@ export function parseManifest(raw: unknown): HistoryManifest {
     chunkCount: data['chunkCount'] as number,
     snapshot:
       typeof data['snapshot'] === 'string' ? data['snapshot'] : undefined,
+    eventChunks,
     logChunks,
     checkpoints,
     eventsIndex,
@@ -104,15 +125,53 @@ export function getDuration(manifest: HistoryManifest): number {
   return manifest.endUs - manifest.startUs;
 }
 
+function findChunkIndexForTimestamp(
+  manifest: HistoryManifest,
+  timestampUs: number,
+): number {
+  const eventChunks = manifest.eventChunks;
+
+  if (!eventChunks || eventChunks.length === 0) {
+    return 0;
+  }
+
+  let lowerBoundIndex = 0;
+  let upperBoundIndex = eventChunks.length - 1;
+  let matchingChunkIndex = 0;
+
+  while (lowerBoundIndex <= upperBoundIndex) {
+    const middleIndex = Math.floor(
+      (lowerBoundIndex + upperBoundIndex) / 2,
+    );
+
+    const middleChunk = eventChunks[middleIndex];
+
+    if (middleChunk.fromUs <= timestampUs) {
+      matchingChunkIndex = middleIndex;
+      lowerBoundIndex = middleIndex + 1;
+    } else {
+      upperBoundIndex = middleIndex - 1;
+    }
+  }
+
+  return matchingChunkIndex;
+}
+
 /** Returns the chunk index for a given timestamp. */
 export function findEventChunkIndex(
   manifest: HistoryManifest,
-  tsUs: number,
+  timestampUs: number,
 ): number {
-  const index = Math.floor(
-    (tsUs - manifest.startUs) / manifest.chunkDurationUs,
+  if (manifest.eventChunks && manifest.eventChunks.length > 0) {
+    return Math.min(
+      findChunkIndexForTimestamp(manifest, timestampUs),
+      manifest.chunkCount - 1,
+    );
+  }
+  const arithmeticIndex = Math.floor(
+    (timestampUs - manifest.startUs) / manifest.chunkDurationUs,
   );
-  return Math.max(0, Math.min(index, manifest.chunkCount - 1));
+  return Math.max(0, Math.min(arithmeticIndex, manifest.chunkCount - 1));
 }
 
 export function getChunkFile(index: number): string {
@@ -124,6 +183,10 @@ export function getEventChunkRange(
   manifest: HistoryManifest,
   index: number,
 ): { fromUs: number; toUs: number } {
+  const recordedChunk = manifest.eventChunks?.[index];
+  if (recordedChunk) {
+    return { fromUs: recordedChunk.fromUs, toUs: recordedChunk.toUs };
+  }
   const fromUs = manifest.startUs + index * manifest.chunkDurationUs;
   const toUs = Math.min(fromUs + manifest.chunkDurationUs, manifest.endUs);
   return { fromUs, toUs };

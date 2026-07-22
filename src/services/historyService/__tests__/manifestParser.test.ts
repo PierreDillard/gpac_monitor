@@ -62,6 +62,56 @@ describe('findEventChunkIndex', () => {
   });
 });
 
+// --- findEventChunkIndex avec eventChunks (régression dérive seek, tâche 20) ---
+
+describe('findEventChunkIndex with recorded eventChunks', () => {
+  const driftedManifest: HistoryManifest = {
+    ...manifest,
+    endUs: 42_000_000,
+    chunkCount: 4,
+    eventChunks: [
+      { fromUs: 0, toUs: 10_500_000, file: 'chunks/chunk_0000.jsonl', count: 21 },
+      { fromUs: 11_000_000, toUs: 21_500_000, file: 'chunks/chunk_0001.jsonl', count: 21 },
+      { fromUs: 22_000_000, toUs: 32_500_000, file: 'chunks/chunk_0002.jsonl', count: 21 },
+      { fromUs: 33_000_000, toUs: 42_000_000, file: 'chunks/chunk_0003.jsonl', count: 18 },
+    ],
+  };
+
+  it('uses real ranges where the arithmetic grid is already wrong', () => {
+    expect(findEventChunkIndex(driftedManifest, 21_000_000)).toBe(1);
+    expect(Math.floor(21_000_000 / driftedManifest.chunkDurationUs)).toBe(2);
+  });
+
+  it.each([
+    [0, 0],
+    [10_500_000, 0],
+    [11_000_000, 1],
+    [21_500_000, 1],
+    [32_999_999, 2],
+    [42_000_000, 3],
+  ])('ts=%i → index %i', (timestampUs, expectedIndex) => {
+    expect(findEventChunkIndex(driftedManifest, timestampUs)).toBe(
+      expectedIndex,
+    );
+  });
+
+  it('maps a timestamp inside a gap to the previous chunk', () => {
+    expect(findEventChunkIndex(driftedManifest, 10_800_000)).toBe(0);
+  });
+
+  it('clamps a timestamp before the first chunk to 0', () => {
+    expect(findEventChunkIndex(driftedManifest, -5_000_000)).toBe(0);
+  });
+
+  it('clamps a timestamp after the last chunk to the last index', () => {
+    expect(findEventChunkIndex(driftedManifest, 99_000_000)).toBe(3);
+  });
+
+  it('keeps the arithmetic fallback when eventChunks is absent', () => {
+    expect(findEventChunkIndex(manifest, 25_000_000)).toBe(2);
+  });
+});
+
 // --- getEventChunkRange ---
 
 describe('getEventChunkRange', () => {
@@ -83,6 +133,20 @@ describe('getEventChunkRange', () => {
   it('clamps toUs to endUs for the last chunk', () => {
     const m: HistoryManifest = { ...manifest, endUs: 28_000_000 };
     expect(getEventChunkRange(m, 2).toUs).toBe(28_000_000);
+  });
+
+  it('returns the recorded range when eventChunks is present', () => {
+    const withRanges: HistoryManifest = {
+      ...manifest,
+      eventChunks: [
+        { fromUs: 0, toUs: 10_500_000, file: 'chunks/chunk_0000.jsonl', count: 21 },
+        { fromUs: 11_000_000, toUs: 21_500_000, file: 'chunks/chunk_0001.jsonl', count: 21 },
+      ],
+    };
+    expect(getEventChunkRange(withRanges, 1)).toEqual({
+      fromUs: 11_000_000,
+      toUs: 21_500_000,
+    });
   });
 });
 
@@ -209,6 +273,32 @@ describe('parseManifest', () => {
       ],
     };
     expect(parseManifest(raw).logChunks).toHaveLength(1);
+  });
+
+  it('parses eventChunks and accepts fromUs === toUs (single-event chunk)', () => {
+    const raw = {
+      ...validRaw,
+      eventChunks: [
+        { fromUs: 0, toUs: 10_500_000, file: 'chunks/chunk_0000.jsonl', count: 21 },
+        { fromUs: 11_000_000, toUs: 11_000_000, file: 'chunks/chunk_0001.jsonl', count: 1 },
+      ],
+    };
+    expect(parseManifest(raw).eventChunks).toHaveLength(2);
+  });
+
+  it('drops eventChunks entirely if any entry is invalid (positions are chunk indexes)', () => {
+    const raw = {
+      ...validRaw,
+      eventChunks: [
+        { fromUs: 0, toUs: 10_500_000, file: 'chunks/chunk_0000.jsonl', count: 21 },
+        { fromUs: 11_000_000, toUs: 21_500_000, file: 123, count: 21 },
+      ],
+    };
+    expect(parseManifest(raw).eventChunks).toBeUndefined();
+  });
+
+  it('leaves eventChunks undefined for a legacy manifest', () => {
+    expect(parseManifest(validRaw).eventChunks).toBeUndefined();
   });
 
   it('silently drops invalid checkpoints', () => {

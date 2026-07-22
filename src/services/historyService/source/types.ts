@@ -49,6 +49,7 @@ export interface HistoryManifest {
   chunkDurationUs: number;
   chunkCount: number;
   snapshot?: string;
+  eventChunks?: HistoryManifestChunk[];
   logChunks?: HistoryManifestChunk[];
   checkpoints?: HistoryManifestCheckpoint[];
   eventsIndex?: ManifestEventEntry[];

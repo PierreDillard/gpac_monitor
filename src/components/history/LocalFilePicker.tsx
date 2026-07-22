@@ -49,11 +49,20 @@ const LocalFilePicker = ({ onLocalFilesLoaded }: LocalFilePickerProps) => {
         await loadFromSource(source);
       } catch (err) {
         console.error('[LocalFilePicker] load error:', err);
-        setLoadError(err instanceof Error ? err.message : 'Load failed');
+        const message = err instanceof Error ? err.message : 'Load failed';
+        const session = sessions.find(
+          (candidate) => candidate.sessionId === sessionId,
+        );
+        setLoadError(
+          message.includes('No manifest for session') &&
+            session?.isComplete === false
+            ? 'Session still starting — try again in a moment'
+            : message,
+        );
         setLoadingSession(false);
       }
     },
-    [browser, loadFromSource],
+    [browser, loadFromSource, sessions],
   );
 
   const handleSelect = useCallback(
@@ -93,6 +102,7 @@ const LocalFilePicker = ({ onLocalFilesLoaded }: LocalFilePickerProps) => {
               session={session}
               onSelect={handleSelect}
               disabled={loadingSession}
+              connected={false}
             />
           ))}
           {loadingSession && (

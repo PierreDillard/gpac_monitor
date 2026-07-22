@@ -100,6 +100,7 @@ function HistoryWriter(historyDir, sessionId) {
             chunkCount: this._events ? this._events.getChunkCount() : 1,
             snapshot: 'snapshot.json',
             checkpoints: this._checkpoints,
+            eventChunks: this._events ? this._events.getAllChunksIncludingOpen() : [],
             logChunks: this._logs ? this._logs.getAllChunksIncludingOpen() : [],
             eventsIndex: [...this._eventsIndex].sort((a, b) => a.ts_us - b.ts_us),
             journalIndex: this._getJournalPointer(),

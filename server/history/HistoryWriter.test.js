@@ -124,6 +124,35 @@ describe('HistoryWriter torn-session manifest', () => {
   });
 });
 
+describe('HistoryWriter event chunk ranges', () => {
+  it('records real [fromUs, toUs] event chunk ranges in the manifest', () => {
+    const written = {};
+    const openSpy = vi.spyOn(std, 'open').mockImplementation((path) => {
+      written[path] = '';
+      return {
+        puts: (content) => { written[path] += content; },
+        close: () => {},
+      };
+    });
+    const renameSpy = vi.spyOn(os, 'rename').mockReturnValue(0);
+    const writer = new HistoryWriter('test-history', 'drift1');
+
+    writer.writeEvent('{"a":1}', 1000);
+    writer.writeEvent('{"a":2}', 10 * 1000 * 1000 + 500 * 1000);
+    writer.writeEvent('{"a":3}', 11 * 1000 * 1000);
+    writer.close();
+
+    const manifest = JSON.parse(written['test-history/drift1/manifest.json.tmp']);
+    expect(manifest.eventChunks).toEqual([
+      { file: 'chunks/chunk_0000.jsonl', fromUs: 1000, toUs: 10 * 1000 * 1000 + 500 * 1000, count: 2 },
+      { file: 'chunks/chunk_0001.jsonl', fromUs: 11 * 1000 * 1000, toUs: 11 * 1000 * 1000, count: 1 },
+    ]);
+
+    openSpy.mockRestore();
+    renameSpy.mockRestore();
+  });
+});
+
 describe('HistoryWriter atomic manifest writes', () => {
   it('writes the manifest to a .tmp file then renames it atomically', () => {
     const writer = new HistoryWriter('test-history', 'sess1');

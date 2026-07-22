@@ -31,11 +31,20 @@ const SessionPicker = () => {
         const source = new RemoteHistorySource(browser, sessionId);
         await loadFromSource(source);
       } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'Load failed');
+        const message = err instanceof Error ? err.message : 'Load failed';
+        const session = sessions.find(
+          (candidate) => candidate.sessionId === sessionId,
+        );
+        setLoadError(
+          message.includes('No manifest for session') &&
+            session?.isComplete === false
+            ? 'Session still starting — try again in a moment'
+            : message,
+        );
         setLoadingSession(false);
       }
     },
-    [browser, loadFromSource],
+    [browser, loadFromSource, sessions],
   );
 
   const handleSelect = useCallback(
@@ -88,6 +97,7 @@ const SessionPicker = () => {
                   session={session}
                   onSelect={handleSelect}
                   disabled={loadingSession}
+                  connected={!!activeConnection}
                 />
               ))}
             {loadError && (
