@@ -2,7 +2,7 @@ import * as std from 'std';
 import * as os from 'os';
 
 const ALLOWED_EXACT_FILES = ['snapshot.json', 'events.jsonl', 'manifest.json', 'logs.jsonl', 'journal_index.json'];
-const VALID_SESSION_ID = /^\d+$/;
+const VALID_SESSION_ID = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/;
 const VALID_CHUNK_FILE = /^chunks\/chunk_\d{4}\.jsonl$/;
 const VALID_LOG_CHUNK_FILE = /^logs\/logs_\d{4}\.jsonl$/;
 const VALID_CHECKPOINT_FILE = /^checkpoints\/cp_\d{4}\.json$/;
@@ -34,7 +34,7 @@ function HistoryFileReader(historyDir) {
             const isComplete = fileExists(`${dir}/done`);
             sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete });
         }
-        sessions.sort((a, b) => Number(b.sessionId) - Number(a.sessionId));
+        sessions.sort((a, b) => (a.sessionId < b.sessionId ? 1 : a.sessionId > b.sessionId ? -1 : 0));
         return sessions;
     };
 

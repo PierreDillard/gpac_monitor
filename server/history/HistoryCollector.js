@@ -13,6 +13,7 @@ const LOG_LEVEL_WARNING = 2;
 function HistoryCollector(historyDir) {
     this.snapshotBuilder = new SnapshotBuilder();
     this._graphVersion = null;
+    this.enabled = !!historyDir;
     this.writer = new HistoryWriter(historyDir);
     this.pidCollector = new PidDataCollector();
     this.snapshotWritten = false;
@@ -56,12 +57,10 @@ this._onChunkRotated = function() {
   const newChunkIndex = this.writer.getCurrentChunkIndex();
   this._writeCheckpointIfNeeded(newChunkIndex, this._lastEventTsUs);
 };
-    this.startLogCapture = function() {
-        logHub.add(LOG_ID, this);
+    this.startLogCapture = function() {        logHub.add(LOG_ID, this);
     };
 
-    this.writeSnapshot = function(data) {
-        if (this.snapshotWritten) return;
+    this.writeSnapshot = function(data) {        if (this.snapshotWritten) return;
         this.writer.writeSnapshot(data);
         this.snapshotWritten = true;
     };
@@ -158,8 +157,7 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
     if (rotated) this._onChunkRotated(filtersTsUs);
 };
 
-    this.recordSessionStats = function(payload, force) {
-        const ts_us = sys.clock_us();
+    this.recordSessionStats = function(payload, force) {        const ts_us = sys.clock_us();
         if (!force && ts_us - this.lastRecordUs < RATE_LIMIT_US) return;
         this.lastRecordUs = ts_us;
 
@@ -190,8 +188,7 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
         if (rotated) this._onChunkRotated(ts_us);
     };
 
-    this.recordCpuStats = function(payload) {
-        const cpuTsUs = sys.clock_us();
+    this.recordCpuStats = function(payload) {        const cpuTsUs = sys.clock_us();
         if (cpuTsUs - this.lastCpuRecordUs < RATE_LIMIT_US) return;
         this.lastCpuRecordUs = cpuTsUs;
         const rotated = this.writer.writeEvent(JSON.stringify({
@@ -204,8 +201,7 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
         if (rotated) this._onChunkRotated(cpuTsUs);
     };
 
-    this.recordPidReconfigured = function(indexes, pidsByFilter) {
-        const tsUs = sys.clock_us();
+    this.recordPidReconfigured = function(indexes, pidsByFilter) {        const tsUs = sys.clock_us();
         this.writer.addEventIndex(tsUs, 'pid-reconfig');
 
         if (!this._currentPidState) {
@@ -237,8 +233,7 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
 
     };
 
-this.recordArgUpdated = function(indexes, argsByFilter) {
-    const tsUs = sys.clock_us();
+this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.clock_us();
     this.writer.addEventIndex(tsUs, 'args-change');
 
     for (const idx of indexes) {
@@ -262,8 +257,7 @@ this.recordArgUpdated = function(indexes, argsByFilter) {
     if (rotated) this._onChunkRotated(tsUs);
 };
 
-    this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {
-        const argsTsUs = sys.clock_us();
+    this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {        const argsTsUs = sys.clock_us();
         const rotated = this.writer.writeEvent(JSON.stringify({
             version: EVENT_VERSION,
             message: 'filter_args_update',
@@ -274,8 +268,7 @@ this.recordArgUpdated = function(indexes, argsByFilter) {
         if (rotated) this._onChunkRotated(argsTsUs);
     };
 
-    this.recordLogConfigChanged = function(logLevel) {
-        const tsUs = sys.clock_us();
+    this.recordLogConfigChanged = function(logLevel) {        const tsUs = sys.clock_us();
         this.writer.writeLog(JSON.stringify({
             version: EVENT_VERSION,
             message: 'log_config_changed',
@@ -285,8 +278,7 @@ this.recordArgUpdated = function(indexes, argsByFilter) {
         
     };
 
-    this.handleLog = function(tool, level, message, thread_id, caller) {
-        this.pendingLogs.push({
+    this.handleLog = function(tool, level, message, thread_id, caller) {        this.pendingLogs.push({
             timestamp: sys.clock_us(),
             tool, level,
             message: message?.length > MAX_LOG_MESSAGE_LENGTH
@@ -330,6 +322,14 @@ this.recordArgUpdated = function(indexes, argsByFilter) {
         this.flushLogs();
         this.writer.close();
     };
+
+    // No -rmt-log: recording disabled, every method becomes a no-op (zero disk I/O)
+    if (!this.enabled) {
+        this.snapshotWritten = true;
+        for (const key in this) {
+            if (typeof this[key] === 'function') this[key] = () => {};
+        }
+    }
 }
 
 export { HistoryCollector };

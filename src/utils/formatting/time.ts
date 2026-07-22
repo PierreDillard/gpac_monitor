@@ -2,8 +2,12 @@
  * Time formatting utilities
  */
 
-export const formatTimestamp = (timestampMs: number | string): string =>
-  new Date(Number(timestampMs)).toLocaleString();
+/** Formats a session id (`YYYY-MM-DD_HH-MM-SS`) for display, e.g. "2026-07-21 14:32:05". */
+export const formatSessionId = (sessionId: string): string => {
+  const [datePart, timePart] = sessionId.split('_');
+  if (!datePart || !timePart) return sessionId;
+  return `${datePart} ${timePart.replace(/-/g, ':')}`;
+};
 
 type TsFraction = { n: number; d: number } | { num: number; den: number };
 

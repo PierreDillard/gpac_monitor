@@ -84,7 +84,7 @@ export class LocalFileSessionFileReader {
   async listSessions(): Promise<SessionInfo[]> {
     return Promise.all(
       Array.from(this.sessionMap.entries())
-        .sort(([a], [b]) => Number(b) - Number(a))
+        .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
         .map(async ([sessionId, entry]) => {
           let startUs: number | undefined;
           let endUs: number | undefined;

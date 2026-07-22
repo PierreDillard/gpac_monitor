@@ -57,6 +57,73 @@ describe('HistoryWriter close order', () => {
   });
 });
 
+describe('HistoryWriter torn-session manifest', () => {
+  const countManifestWrites = (renameSpy) =>
+    renameSpy.mock.calls.filter(([, dest]) => dest.endsWith('/manifest.json')).length;
+
+  it('writes the manifest on the first event so a session killed before rotation stays loadable', () => {
+    const renameSpy = vi.spyOn(os, 'rename');
+    const writer = new HistoryWriter('test-history', 'torn1');
+
+    writer.writeEvent('{"a":1}', 1000);
+
+    expect(countManifestWrites(renameSpy)).toBe(1);
+    renameSpy.mockRestore();
+  });
+
+  it('throttles manifest rewrites to MANIFEST_REFRESH_US between events', () => {
+    const renameSpy = vi.spyOn(os, 'rename');
+    const writer = new HistoryWriter('test-history', 'torn2');
+
+    writer.writeEvent('{"a":1}', 1000);
+    writer.writeEvent('{"a":2}', 500 * 1000);
+
+    expect(countManifestWrites(renameSpy)).toBe(1);
+
+    writer.writeEvent('{"a":3}', 3 * 1000 * 1000);
+
+    expect(countManifestWrites(renameSpy)).toBe(2);
+    renameSpy.mockRestore();
+  });
+
+  it('stops refreshing the manifest mid-chunk once the first rotation has happened', () => {
+    const renameSpy = vi.spyOn(os, 'rename');
+    const writer = new HistoryWriter('test-history', 'torn4');
+
+    writer.writeEvent('{"a":1}', 1000);
+    writer.writeEvent('{"a":2}', 10 * 1000 * 1000 + 1000);
+
+    expect(writer.getCurrentChunkIndex()).toBe(1);
+    expect(countManifestWrites(renameSpy)).toBe(2);
+
+    writer.writeEvent('{"a":3}', 10 * 1000 * 1000 + 4 * 1000 * 1000);
+    writer.writeEvent('{"a":4}', 10 * 1000 * 1000 + 8 * 1000 * 1000);
+
+    expect(countManifestWrites(renameSpy)).toBe(2);
+    renameSpy.mockRestore();
+  });
+
+  it('lists the open log chunk in a mid-session manifest', () => {
+    const written = {};
+    const openSpy = vi.spyOn(std, 'open').mockImplementation((path) => ({
+      puts: (content) => { written[path] = (written[path] || '') + content; },
+      close: () => {},
+    }));
+    const renameSpy = vi.spyOn(os, 'rename').mockReturnValue(0);
+    const writer = new HistoryWriter('test-history', 'torn3');
+
+    writer.writeLog('{"l":1}', 1000);
+
+    const manifest = JSON.parse(written['test-history/torn3/manifest.json.tmp']);
+    expect(manifest.logChunks).toEqual([
+      { file: 'logs/logs_0000.jsonl', fromUs: 1000, toUs: 1000, count: 1 },
+    ]);
+
+    openSpy.mockRestore();
+    renameSpy.mockRestore();
+  });
+});
+
 describe('HistoryWriter atomic manifest writes', () => {
   it('writes the manifest to a .tmp file then renames it atomically', () => {
     const writer = new HistoryWriter('test-history', 'sess1');

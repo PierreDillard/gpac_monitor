@@ -2,7 +2,7 @@ import * as std from 'std';
 import * as os from 'os';
 import { ChunkStream } from './helpers/ChunkStream.js';
 import { buildJournalPointer, serializeJournalIndex } from './helpers/journalIndex.js';
-import { CHUNK_DURATION_US, MAX_LOG_PER_CHUNK } from '../config/history.config.js';
+import { CHUNK_DURATION_US, MAX_LOG_PER_CHUNK, MANIFEST_REFRESH_US } from '../config/history.config.js';
 
 function writeFileAtomic(path, content) {
     const tmpPath = `${path}.tmp`;
@@ -14,9 +14,18 @@ function writeFileAtomic(path, content) {
     if (err !== 0) { print(`[HistoryWriter] Failed to rename ${tmpPath} to ${path} (errno ${err})`); }
 }
 
+// Zero-padded so lexicographic sort (used by HistoryFileReader.listSessions) matches
+// chronological order, unlike a raw epoch-ms folder name.
+function formatSessionId(date) {
+    const pad = (value) => String(value).padStart(2, '0');
+    const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const timePart = `${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+    return `${datePart}_${timePart}`;
+}
+
 function HistoryWriter(historyDir, sessionId) {
     const baseDir = historyDir || 'history';
-    const id = sessionId || String(Date.now());
+    const id = sessionId || formatSessionId(new Date());
     const dir = `${baseDir}/${id}`;
     const chunksDir = `${dir}/chunks`;
     const logsDir = `${dir}/logs`;
@@ -35,6 +44,7 @@ function HistoryWriter(historyDir, sessionId) {
     this._eventsIndex = [];
     this._journalTsUs = [];
     this._journalTypes = [];
+    this._lastManifestUs = null;
 
     this._init = function() {
         if (this._initialized) return;
@@ -44,7 +54,9 @@ function HistoryWriter(historyDir, sessionId) {
         try { os.mkdir(chunksDir); } catch (_e) {}
         try { os.mkdir(logsDir); } catch (_e) {}
         try { os.mkdir(checkpointsDir); } catch (_e) {}
-        print(`[HistoryWriter] Recording session ${id} to ${dir}/`);
+        const [, statErr] = os.stat(dir);
+        if (statErr !== 0) print(`[HistoryWriter] Cannot create ${dir} — check the -rmt-log path and permissions`);
+        else print(`[HistoryWriter] Recording session ${id} to ${dir}/`);
         this._events = new ChunkStream(chunksDir, 'chunk', CHUNK_DURATION_US);
         this._logs = new ChunkStream(logsDir, 'logs', CHUNK_DURATION_US, MAX_LOG_PER_CHUNK);
     };
@@ -88,12 +100,22 @@ function HistoryWriter(historyDir, sessionId) {
             chunkCount: this._events ? this._events.getChunkCount() : 1,
             snapshot: 'snapshot.json',
             checkpoints: this._checkpoints,
-            logChunks: this._logs ? this._logs.getAllChunks() : [],
+            logChunks: this._logs ? this._logs.getAllChunksIncludingOpen() : [],
             eventsIndex: [...this._eventsIndex].sort((a, b) => a.ts_us - b.ts_us),
             journalIndex: this._getJournalPointer(),
         };
         this._writeJournalIndex();
         writeFileAtomic(`${dir}/manifest.json`, JSON.stringify(manifest) + '\n');
+        this._lastManifestUs = this._lastEventUs;
+    };
+
+    // Torn-session safety: a killed GPAC never reaches close(), so the manifest
+    // must exist on disk before the first chunk rotation.
+    this._maybeWriteManifest = function() {
+        if (this.getCurrentChunkIndex() !== 0) return;
+        if (this._lastManifestUs !== null &&
+            this._lastEventUs - this._lastManifestUs < MANIFEST_REFRESH_US) return;
+        this._writeManifest();
     };
 
     this.writeSnapshot = function(obj) {
@@ -108,6 +130,7 @@ function HistoryWriter(historyDir, sessionId) {
         this._init();
         this._updateTimestamps(tsUs);
         if (this._logs.write(jsonString, tsUs)) this._writeManifest();
+        else this._maybeWriteManifest();
     };
 
     this.writeEvent = function(jsonString, tsUs) {
@@ -115,6 +138,7 @@ function HistoryWriter(historyDir, sessionId) {
         this._updateTimestamps(tsUs);
         const rotated = this._events.write(jsonString, tsUs);
         if (rotated) this._writeManifest();
+        else this._maybeWriteManifest();
         return rotated;
     };
 

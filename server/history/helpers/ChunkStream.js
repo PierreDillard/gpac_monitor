@@ -43,6 +43,7 @@ function ChunkStream(dir, prefix, maxDuration, maxCount) {
 
     this.write = function(line, tsUs) {
         if (!this._file) this._open();
+        if (!this._file) return false;
         if (this._startUs === null) this._startUs = tsUs;
 
         this._file.puts(line + '\n');
@@ -69,6 +70,13 @@ function ChunkStream(dir, prefix, maxDuration, maxCount) {
 
     this.getAllChunks = function() {
         return this._completed.slice();
+    };
+
+    // Sealed chunks + the open one — for mid-session manifests of torn sessions
+    this.getAllChunksIncludingOpen = function() {
+        const all = this._completed.slice();
+        if (this._file && this._count > 0) all.push(this._finalizeCurrentChunk());
+        return all;
     };
 
     this.close = function() {

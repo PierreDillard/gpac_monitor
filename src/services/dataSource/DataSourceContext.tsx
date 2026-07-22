@@ -7,7 +7,7 @@ import type {
   HistorySource,
   HistoryManifest,
 } from '@/services/historyService/source/types';
-import { formatTimestamp } from '@/utils/formatting';
+import { formatSessionId } from '@/utils/formatting';
 
 export type DataSourceMode = 'live' | 'history';
 
@@ -49,7 +49,7 @@ export function DataSourceProvider({
     async (source: HistorySource) => {
       await historyController.load(source, dispatch);
       setManifest(await source.getManifest());
-      setSessionName(formatTimestamp(source.sessionId));
+      setSessionName(formatSessionId(source.sessionId));
       setSessionLoaded(true);
       setMode('history');
     },

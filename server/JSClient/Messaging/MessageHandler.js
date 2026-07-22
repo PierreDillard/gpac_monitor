@@ -1,8 +1,10 @@
+import { Sys as sys } from 'gpaccore';
 import { DEFAULT_FILTER_FIELDS, UPDATE_INTERVALS } from '../config.js';
 import { cacheManager } from '../Cache/CacheManager.js';
 import { HistoryFileReader } from '../../history/HistoryFileReader.js';
 
-const historyReader = new HistoryFileReader('history');
+// Read from the same directory HistoryCollector writes to (-rmt-log)
+const historyReader = new HistoryFileReader(sys.get_opt('core', 'rmt-log') || 'history');
 
 function MessageHandler(client) {
     this.client = client;

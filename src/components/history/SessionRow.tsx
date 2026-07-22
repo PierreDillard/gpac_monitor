@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { LuClapperboard, LuTriangleAlert } from 'react-icons/lu';
-import { formatBytes, formatTimestamp, formatTime } from '@/utils/formatting';
+import { formatBytes, formatSessionId, formatTime } from '@/utils/formatting';
 import type { SessionInfo } from '@/services/historyService/sessionFileReader/types';
 
 interface SessionRowProps {
@@ -23,7 +23,7 @@ const SessionRow = memo(({ session, onSelect, disabled }: SessionRowProps) => {
     >
       <div>
         <div className="text-sm text-white font-medium">
-          {formatTimestamp(session.sessionId)}
+          {formatSessionId(session.sessionId)}
         </div>
         <div className="text-xs text-gray-500 mt-0.5">
           {!session.hasSnapshot && (
