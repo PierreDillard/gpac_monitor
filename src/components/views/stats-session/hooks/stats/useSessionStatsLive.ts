@@ -42,7 +42,9 @@ export function useSessionStatsLive(
         } else {
           unsub();
         }
-      } catch {}
+      } catch (error) {
+        console.error('[useSessionStatsLive] Subscription failed:', error);
+      }
     };
 
     setup();

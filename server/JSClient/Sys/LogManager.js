@@ -8,7 +8,7 @@ import { logHub } from './Utils/LogHub.js';
 function LogManager(client) {
     this.client = client;
     this.isSubscribed = false;
-    this.logLevel = "all@quiet";
+    this.logLevel = "all@warning";
     this.pendingLogs = [];
     this.batchTimer = null;
 

@@ -11,6 +11,7 @@ import { LayoutManager } from '../header/LayoutManager';
 import WidgetSelector from '../../widget/WidgetSelector';
 import ConnectionSelector from '../connection/ConnectionSelector';
 import LogCounters from './LogCounters';
+import LogConfigBadge from './LogConfigBadge';
 import { HISTORY_HEADER_HEIGHT_PX } from '@/components/history/historyLayout';
 import { useDataMode } from '@/shared/hooks/data/useDataMode';
 import { useDataSource } from '@/services/dataSource/DataSourceContext';
@@ -113,6 +114,7 @@ const Header = () => {
               <span className="truncate max-w-[180px]">{sessionName}</span>
             </span>
           )}
+          <LogConfigBadge />
         </div>
         <div className="flex items-center gap-4 shrink-0">
           {!isHistory && (

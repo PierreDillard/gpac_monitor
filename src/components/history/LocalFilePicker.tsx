@@ -102,7 +102,7 @@ const LocalFilePicker = ({ onLocalFilesLoaded }: LocalFilePickerProps) => {
               session={session}
               onSelect={handleSelect}
               disabled={loadingSession}
-              connected={false}
+              isRecording={false}
             />
           ))}
           {loadingSession && (

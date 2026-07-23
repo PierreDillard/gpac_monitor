@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { gpacService } from '@/services/gpacService';
 import { useAppSelector } from '../redux';
 import { selectActiveConnection } from '@/shared/store/selectors';
+import { useDataSource } from '@/services/dataSource/DataSourceContext';
 
 type UseServiceReadyOptions = { enabled?: boolean; timeoutMs?: number };
 type UseServiceReadyResult = {
@@ -18,12 +19,16 @@ export function useServiceReady({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const activeConnection = useAppSelector(selectActiveConnection);
+  const { mode } = useDataSource();
 
   const connectionId = activeConnection?.id;
   const connectionAddress = activeConnection?.address;
+  // History mode must never open the live WS: the server registers every
+  // client in all_clients and broadcasts live graph updates to all of them.
+  const liveEnabled = enabled && mode !== 'history';
 
   useEffect(() => {
-    if (!enabled || !connectionAddress) {
+    if (!liveEnabled || !connectionAddress) {
       setIsReady(false);
       setIsLoading(false);
       setError(null);
@@ -56,7 +61,7 @@ export function useServiceReady({
     return () => {
       cancelled = true;
     };
-  }, [enabled, timeoutMs, connectionId, connectionAddress]);
+  }, [liveEnabled, timeoutMs, connectionId, connectionAddress]);
 
   return { isReady, isLoading, error };
 }

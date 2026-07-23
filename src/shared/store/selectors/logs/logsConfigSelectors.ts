@@ -20,7 +20,7 @@ export const selectLogsConfigString = createSelector(
       configs.push(`${tool}@${level}`);
     });
 
-    const result = configs.join(',');
+    const result = configs.join(':');
     return result;
   },
 );

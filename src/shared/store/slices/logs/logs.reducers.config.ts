@@ -57,7 +57,9 @@ export const configReducers = {
     state.visibleToolsFilter = [...action.payload];
   },
 
-  /** Restore logs configuration from localStorage persistence */
+  /** Restore logs configuration from localStorage persistence.
+   *  `replace: true` = payload is a complete state (snapshot): levelsByTool
+   *  replaces the current map instead of merging into it. */
   restoreConfig: (
     state: LogsState,
     action: PayloadAction<{
@@ -65,15 +67,23 @@ export const configReducers = {
       levelsByTool?: Partial<Record<GpacLogTool, GpacLogLevel>>;
       defaultAllLevel?: GpacLogLevel;
       visibleToolsFilter?: GpacLogTool[];
+      replace?: boolean;
     }>,
   ) => {
-    const { currentTool, levelsByTool, defaultAllLevel, visibleToolsFilter } =
-      action.payload;
+    const {
+      currentTool,
+      levelsByTool,
+      defaultAllLevel,
+      visibleToolsFilter,
+      replace,
+    } = action.payload;
     if (currentTool) {
       state.currentTool = currentTool;
     }
     if (levelsByTool) {
-      state.levelsByTool = { ...state.levelsByTool, ...levelsByTool };
+      state.levelsByTool = replace
+        ? (levelsByTool as Record<GpacLogTool, GpacLogLevel>)
+        : { ...state.levelsByTool, ...levelsByTool };
     }
     if (defaultAllLevel) {
       state.defaultAllLevel = defaultAllLevel;

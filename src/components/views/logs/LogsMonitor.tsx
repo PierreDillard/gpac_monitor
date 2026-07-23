@@ -219,23 +219,26 @@ const LogsMonitor: React.FC<LogsMonitorProps> = React.memo(({ id }) => {
             <MdOutlineTimer className="w-4 h-4" />
           </button>
         </CustomTooltip>
-        <CustomTooltip
-          content="Configure log levels for each tool"
-          side="bottom"
-        >
-          <ToolSettingsDropdown
-            levelsByTool={levelsByTool}
-            defaultAllLevel={defaultAllLevel}
-            currentTool={currentTool}
-            onToolLevelChange={setToolLevel}
-            onDefaultAllLevelChange={setDefaultLevel}
-            onToolNavigate={setTool}
-          />
-        </CustomTooltip>
+        {isLive && (
+          <CustomTooltip
+            content="Configure log levels for each tool"
+            side="bottom"
+          >
+            <ToolSettingsDropdown
+              levelsByTool={levelsByTool}
+              defaultAllLevel={defaultAllLevel}
+              currentTool={currentTool}
+              onToolLevelChange={setToolLevel}
+              onDefaultAllLevelChange={setDefaultLevel}
+              onToolNavigate={setTool}
+            />
+          </CustomTooltip>
+        )}
       </div>
     ),
     [
       isUIFilterActive,
+      isLive,
       timestampMode,
       levelsByTool,
       defaultAllLevel,

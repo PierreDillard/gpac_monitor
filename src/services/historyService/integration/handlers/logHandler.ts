@@ -50,7 +50,14 @@ export function dispatchLogEvents(
   flushLogs();
 }
 
-function applyLogConfig(dispatch: AppDispatch, logLevel: string): void {
+/** `replace: true` = logLevel is a complete recorded state (snapshot), not a
+ *  delta: levelsByTool replaces the current map, clearing stale entries
+ *  inherited from the live localStorage config. */
+export function applyLogConfig(
+  dispatch: AppDispatch,
+  logLevel: string,
+  replace = false,
+): void {
   const changes = parseConfigChanges(logLevel);
   const allEntry = changes.find((entry) => entry.tool === 'all');
   const toolEntries = changes.filter((entry) => entry.tool !== 'all');
@@ -58,14 +65,16 @@ function applyLogConfig(dispatch: AppDispatch, logLevel: string): void {
   const config: {
     defaultAllLevel?: GpacLogLevel;
     levelsByTool?: Partial<Record<GpacLogTool, GpacLogLevel>>;
+    replace?: boolean;
   } = {};
 
   if (allEntry) config.defaultAllLevel = allEntry.level;
-  if (toolEntries.length) {
+  if (toolEntries.length || replace) {
     config.levelsByTool = Object.fromEntries(
       toolEntries.map((entry) => [entry.tool, entry.level]),
     ) as Partial<Record<GpacLogTool, GpacLogLevel>>;
   }
+  if (replace) config.replace = true;
 
   dispatch(restoreConfig(config));
 }

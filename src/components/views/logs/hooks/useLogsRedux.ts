@@ -8,6 +8,7 @@ import {
 } from '@/shared/store/selectors/logs/logsSelectors';
 import { selectVisibleLogs } from '@/shared/store/selectors/logs/logsFilterSelectors';
 import { selectCurrentConfig } from '@/shared/store/selectors/logs/logsPersistenceSelectors';
+import { useDataMode } from '@/shared/hooks/data/useDataMode';
 import { useDisplayQueue } from './useDisplayQueue';
 import {
   setTool,
@@ -24,6 +25,7 @@ const STORAGE_KEY = 'gpac-logs-config';
 
 export function useLogsRedux() {
   const dispatch = useAppDispatch();
+  const { isLive } = useDataMode();
 
   // Redux selectors
   const currentTool = useAppSelector(selectCurrentTool);
@@ -89,10 +91,12 @@ export function useLogsRedux() {
     [dispatch],
   );
 
-  // Auto-save config when it changes
+  // Auto-save config when it changes — never from history mode, where the
+  // config reflects the recorded session, not the user's live preferences
   useEffect(() => {
+    if (!isLive) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(currentConfig));
-  }, [currentConfig]);
+  }, [currentConfig, isLive]);
 
   return useMemo(
     () => ({

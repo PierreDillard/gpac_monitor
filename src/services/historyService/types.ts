@@ -133,6 +133,8 @@ export interface HistorySnapshot {
   graph_v: number;
   filters: HistoryFilter[];
   session_metrics?: string | null;
+  /** Log config active at recording start (CLI -logs), absent on older sessions */
+  log_config?: string | null;
 }
 
 export type HistoryCheckpoint = Pick<

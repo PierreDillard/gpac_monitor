@@ -57,10 +57,14 @@ this._onChunkRotated = function() {
   const newChunkIndex = this.writer.getCurrentChunkIndex();
   this._writeCheckpointIfNeeded(newChunkIndex, this._lastEventTsUs);
 };
-    this.startLogCapture = function() {        logHub.add(LOG_ID, this);
+    this.startLogCapture = function() {
+        // Called at server start, before any client: captures the CLI log config
+        this.initialLogConfig = sys.get_logs(true);
+        logHub.add(LOG_ID, this);
     };
 
     this.writeSnapshot = function(data) {        if (this.snapshotWritten) return;
+        data.log_config = this.initialLogConfig || null;
         this.writer.writeSnapshot(data);
         this.snapshotWritten = true;
     };

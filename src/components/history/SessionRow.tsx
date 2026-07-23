@@ -7,15 +7,15 @@ interface SessionRowProps {
   session: SessionInfo;
   onSelect: (sessionId: string) => void;
   disabled: boolean;
-  connected: boolean;
+  isRecording: boolean;
 }
 
 const SessionRow = memo(
-  ({ session, onSelect, disabled, connected }: SessionRowProps) => {
+  ({ session, onSelect, disabled, isRecording }: SessionRowProps) => {
     const isValid =
       (session.hasSnapshot && (session.hasEvents || session.hasManifest)) ||
       (session.hasManifest && session.hasCheckpoints);
-    const inProgress = !session.isComplete && connected;
+    const inProgress = !session.isComplete && isRecording;
     const isBroken = session.isComplete && !isValid;
     return (
       <button

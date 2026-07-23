@@ -73,7 +73,11 @@ import type {
   StatusMetricSamplesBuffer,
 } from './handlers/statsHandler';
 import type { PIDDynamicByFilter } from './extractPIDDynamic';
-import { dispatchLogEvent, dispatchLogEvents } from './handlers/logHandler';
+import {
+  dispatchLogEvent,
+  dispatchLogEvents,
+  applyLogConfig,
+} from './handlers/logHandler';
 import {
   MAX_LOGS_ON_SEEK,
   BADGE_WINDOW_US,
@@ -252,6 +256,8 @@ export class HistoryAdapter {
     dispatch(resetAllData());
     dispatch(clearSessionDetails());
     dispatch(clearLogs());
+    if (snapshot.log_config)
+      applyLogConfig(dispatch, snapshot.log_config, true);
     dispatch(clearGraph());
     dispatch(filtersUpdated(snapshot.filters.map(toGraphFilterData)));
     dispatch(setCommandLine(snapshot.command_line));

@@ -52,6 +52,10 @@ const SessionPicker = () => {
     [loadSession],
   );
 
+  const recordingSessionId = activeConnection
+    ? sessions.find((session) => !session.isComplete)?.sessionId
+    : undefined;
+
   if (!isHistory || sessionLoaded) return null;
 
   return (
@@ -97,7 +101,7 @@ const SessionPicker = () => {
                   session={session}
                   onSelect={handleSelect}
                   disabled={loadingSession}
-                  connected={!!activeConnection}
+                  isRecording={session.sessionId === recordingSessionId}
                 />
               ))}
             {loadError && (
