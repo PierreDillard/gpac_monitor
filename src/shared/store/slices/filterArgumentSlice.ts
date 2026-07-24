@@ -5,6 +5,7 @@ import type {
   GpacArgument,
   GpacArgumentValue,
 } from '@/types/domain/gpac/gpac_args';
+import type { RootState } from '@/shared/store';
 
 export interface ArgumentUpdate {
   filterId: string;
@@ -97,17 +98,14 @@ export const {
 
 // Thunk
 
-export const updateFilterArgument = createAsyncThunk(
+export const updateFilterArgument = createAsyncThunk<
+  void,
+  { filterId: string; argName: string; argValue: any },
+  { state: RootState }
+>(
   'filterArgument/updateFilterArgument',
-  async (
-    {
-      filterId,
-      argName,
-      argValue,
-    }: { filterId: string; argName: string; argValue: any },
-    { dispatch, getState },
-  ) => {
-    const filterName = selectFilterNameById(getState() as any, filterId);
+  async ({ filterId, argName, argValue }, { dispatch, getState }) => {
+    const filterName = selectFilterNameById(getState(), filterId);
 
     if (!filterName) {
       throw new Error(`Filter with ID ${filterId} not found`);
