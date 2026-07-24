@@ -371,7 +371,6 @@ export class HistoryAdapter {
     }
     if (lastConfig !== null) {
       dispatchLogEvent(this.dispatch, {
-        version: 1,
         ts_us: 0,
         message: 'log_config_changed',
         logLevel: lastConfig,

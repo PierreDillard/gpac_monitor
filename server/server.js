@@ -9,7 +9,8 @@ import { PidDataCollector } from './JSClient/Filters/PID/PidDataCollector.js';
 // HISTORY — record only when gpac is launched with -rmt-log=<dir>
 const recordPath = sys.get_opt("core", "rmt-log");
 const historyCollector = new HistoryCollector(recordPath);
-print(recordPath ? `[History] Recording enabled -> ${recordPath}` : '[History] Recording disabled (no -rmt-log)');
+
+
 
 // GLOBAL STATE
 let all_clients = [];

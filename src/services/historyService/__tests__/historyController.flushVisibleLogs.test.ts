@@ -4,7 +4,6 @@ import type { HistorySource, HistoryManifest } from '../source/types';
 import type { HistorySnapshot, LogEvent } from '../types';
 
 const makeSnapshot = (): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -33,7 +32,6 @@ const oneChunk: HistoryManifest = {
 
 function makeLogEvent(ts_us: number): LogEvent {
   return {
-    version: 1,
     message: 'log_batch',
     ts_us,
     logs: [

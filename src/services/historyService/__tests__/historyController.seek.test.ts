@@ -4,7 +4,6 @@ import type { HistorySource, HistoryManifest } from '../source/types';
 import type { HistorySnapshot, SessionStatsEvent } from '../types';
 
 const makeSnapshot = (): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -12,7 +11,6 @@ const makeSnapshot = (): HistorySnapshot => ({
 });
 
 const makeStatsEvent = (ts_us: number): SessionStatsEvent => ({
-  version: 1,
   ts_us,
   message: 'session_stats',
   all_packets_done: false,

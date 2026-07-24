@@ -3,7 +3,7 @@ import { isStructuralEvent } from '../types';
 import type { HistoryEvent } from '../types';
 
 const makeEvent = (message: string): HistoryEvent =>
-  ({ version: 1, ts_us: 1000, message }) as unknown as HistoryEvent;
+  ({ ts_us: 1000, message }) as unknown as HistoryEvent;
 
 describe('isStructuralEvent', () => {
   it.each([

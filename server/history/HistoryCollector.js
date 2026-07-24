@@ -5,7 +5,6 @@ import { PidDataCollector } from '../JSClient/Filters/PID/PidDataCollector.js';
 import { logHub } from '../JSClient/Sys/Utils/LogHub.js';
 import { RATE_LIMIT_US, MAX_LOG_MESSAGE_LENGTH } from '../config/history.config.js';
 
-const EVENT_VERSION = 1;
 const LOG_ID = '_hist_';
 const LOG_LEVEL_ERROR = 1;
 const LOG_LEVEL_WARNING = 2;
@@ -36,7 +35,6 @@ function HistoryCollector(historyDir) {
     }
 
     const checkpoint = {
-        version: this._latestStructural.version,
         ts_us: tsUs,
         graph_v: this._latestStructural.graph_v,
         filters: this._latestStructural.filters,
@@ -118,7 +116,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
     // Writes the initial full snapshot once.
     if (!this.snapshotWritten) {
         this.writeSnapshot({
-            version: EVENT_VERSION,
             ts_us: filtersTsUs,
             command_line: null,
             graph_v: graphVersion,
@@ -128,7 +125,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
 
     // Writes the full "filters" event for history replay.
     const rotated = this.writer.writeEvent(JSON.stringify({
-        version: EVENT_VERSION,
         message: 'filters',
         ts_us: filtersTsUs,
         graph_v: graphVersion,
@@ -138,7 +134,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
 
     // Stores the structural baseline used by checkpoints.
     this._latestStructural = {
-        version: EVENT_VERSION,
         graph_v: graphVersion,
         filters: checkpointFilters,
     };
@@ -182,7 +177,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
         session.lock_filters(false);
 
         const rotated = this.writer.writeEvent(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'session_stats',
             ts_us,
             all_packets_done: payload.all_packets_done,
@@ -196,7 +190,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
         if (cpuTsUs - this.lastCpuRecordUs < RATE_LIMIT_US) return;
         this.lastCpuRecordUs = cpuTsUs;
         const rotated = this.writer.writeEvent(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'cpu_stats',
             ts_us: cpuTsUs,
             ...payload,
@@ -225,7 +218,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {
         this._chunkNeedsCheckpoint = true;
     }
        const rotated = this.writer.writeEvent(JSON.stringify({
-        version: EVENT_VERSION,
         message: 'filter_pid_reconfigured',
         ts_us: tsUs,
         indexes,
@@ -251,7 +243,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
     }
 
     const rotated = this.writer.writeEvent(JSON.stringify({
-        version: EVENT_VERSION,
         message: 'filter_arg_updated',
         ts_us: tsUs,
         indexes,
@@ -263,7 +254,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
 
     this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {        const argsTsUs = sys.clock_us();
         const rotated = this.writer.writeEvent(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'filter_args_update',
             ts_us: argsTsUs,
             payload: { filter_idx: filterIdx, arg_name: argName, value: newValue },
@@ -274,7 +264,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
 
     this.recordLogConfigChanged = function(logLevel) {        const tsUs = sys.clock_us();
         this.writer.writeLog(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'log_config_changed',
             ts_us: tsUs,
             logLevel,
@@ -301,7 +290,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
         if (this.pendingLogs.length) {
             const tsUs = sys.clock_us();
             this.writer.writeLog(JSON.stringify({
-                version: EVENT_VERSION,
                 message: 'log_batch',
                 ts_us: tsUs,
                 logs: this.pendingLogs,

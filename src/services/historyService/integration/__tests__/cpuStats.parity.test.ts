@@ -8,7 +8,6 @@ import type { CpuStatsEvent } from '../../types';
 import type { CPUStats } from '@/types/domain/system';
 
 const EVENT_1: CpuStatsEvent = {
-  version: 1,
   message: 'cpu_stats',
   ts_us: 3308791,
   stats: {
@@ -28,7 +27,6 @@ const EVENT_1: CpuStatsEvent = {
 };
 
 const EVENT_2: CpuStatsEvent = {
-  version: 1,
   message: 'cpu_stats',
   ts_us: 118195672,
   stats: {
