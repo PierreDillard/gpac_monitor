@@ -52,7 +52,7 @@ const makeFiltersEvent = (
 });
 
 describe('HistoryAdapter.handleFilters — arg state management', () => {
-  it('T1 — seek removes stale args for deleted filter', () => {
+  it('seek removes stale args for deleted filter', () => {
     const store = makeStore();
     const adapter = new HistoryAdapter(store.dispatch);
 
@@ -72,7 +72,7 @@ describe('HistoryAdapter.handleFilters — arg state management', () => {
     expect(args['99']).toBeUndefined();
   });
 
-  it('T4 — new graph replaces args entirely', () => {
+  it('new graph replaces args entirely', () => {
     const store = makeStore();
     const adapter = new HistoryAdapter(store.dispatch);
 

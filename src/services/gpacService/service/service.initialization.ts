@@ -1,5 +1,6 @@
 import { GpacServiceState, GpacServiceCallbacks } from './service.types';
 import { ConnectionStatus } from '../../../types/communication/IgpacCommunication';
+import type { GpacMessage } from '@/types/communication/shared';
 
 export const initializationMethods = {
   /**
@@ -9,7 +10,7 @@ export const initializationMethods = {
   setupWebSocketHandlers(
     state: GpacServiceState,
     callbacks: GpacServiceCallbacks,
-    sendMessage: (message: any) => void,
+    sendMessage: (message: GpacMessage) => void,
     handleDisconnect: () => void,
   ): void {
     state.ws.addConnectHandler(() => {

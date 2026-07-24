@@ -229,7 +229,7 @@ describe('HistoryAdapter.hydrateCheckpoint', () => {
     expect(statsTypes).toHaveLength(0);
   });
 
-  it('T2 — applies baseArgs + arg_state delta (unaffected filter preserved)', () => {
+  it('applies baseArgs + arg_state delta (unaffected filter preserved)', () => {
     const store = makeStore();
     const a = new HistoryAdapter(store.dispatch);
 
@@ -257,7 +257,7 @@ describe('HistoryAdapter.hydrateCheckpoint', () => {
     expect(args['1']).toEqual([{ name: 'mode', value: 'auto' } as any]);
   });
 
-  it('T3 — backward seek without arg_state rolls back to baseArgs', () => {
+  it('backward seek without arg_state rolls back to baseArgs', () => {
     const store = makeStore();
     const a = new HistoryAdapter(store.dispatch);
 

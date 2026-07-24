@@ -1,6 +1,7 @@
 import { GpacServiceState } from './service.types';
 import { generateID } from '@/utils/core';
 import { PidProperty } from '@/types';
+import type { GpacMessage } from '@/types/communication/shared';
 
 export const filterMethods = {
   /**
@@ -10,7 +11,7 @@ export const filterMethods = {
   getFilterDetails(
     state: GpacServiceState,
     idx: number,
-    sendMessage: (message: any) => void,
+    sendMessage: (message: GpacMessage) => void,
   ): void {
     const currentFilterId = state.coreService.getCurrentFilterId();
     if (currentFilterId !== null && currentFilterId !== idx) {
@@ -55,7 +56,7 @@ export const filterMethods = {
    */
   unsubscribeFromFilter(
     filterIdx: string,
-    sendMessage: (message: any) => void,
+    sendMessage: (message: GpacMessage) => void,
   ): void {
     const numericIdx = parseInt(filterIdx, 10);
     if (!isNaN(numericIdx)) {

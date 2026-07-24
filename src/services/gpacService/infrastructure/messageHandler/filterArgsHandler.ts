@@ -1,4 +1,4 @@
-import { WSMessageType, DetailsMessage } from '@/services/ws/types';
+import { DetailsMessage } from '@/services/ws/types';
 
 import { generateID } from '@/utils/core';
 import { MessageHandlerDependencies } from './types';
@@ -28,7 +28,7 @@ export class FilterArgsHandler {
     this.ensureLoaded();
     return this.lifecycle.subscribe(idx, () =>
       this.dependencies.send({
-        type: WSMessageType.FILTER_ARGS_DETAILS,
+        type: 'filter_args_details',
         id: generateID(),
         idx,
       }),
@@ -62,7 +62,7 @@ export class FilterArgsHandler {
       );
 
       await this.dependencies.send({
-        type: WSMessageType.UPDATE_ARG,
+        type: 'update_arg',
         id: generateID(),
         idx,
         name,
