@@ -11,6 +11,7 @@ import type { SessionFilterStatistics } from '@/types/domain/gpac/filter-stats';
 import type { CPUStats } from '@/types/domain/system';
 import type { FilterArgument } from '@/types/domain/gpac/gpac_args';
 import type { PidPropsMap } from '@/types/domain/gpac/pid_props';
+import type { MonitorIntervals } from '@/shared/store/slices/monitorConfigSlice';
 
 // Base interface for all responses
 interface BaseWSResponse {
@@ -117,6 +118,11 @@ export interface SessionEndMessage {
   message: 'session_end';
 }
 
+export interface MonitorConfigMessage {
+  message: 'monitor_config';
+  intervals: MonitorIntervals;
+}
+
 export interface NotificationMessage {
   message: 'notification';
   type: string;
@@ -170,4 +176,5 @@ export type IncomingWsMessage =
   | SessionEndMessage
   | NotificationMessage
   | FilterPidReconfiguredMessage
-  | FilterArgUpdatedMessage;
+  | FilterArgUpdatedMessage
+  | MonitorConfigMessage;

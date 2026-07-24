@@ -19,6 +19,7 @@ import {
   LogHistoryResponse,
   LogStatusResponse,
   LogConfigChangedResponse,
+  IncomingWsMessage,
 } from '@/services/ws/types';
 
 export type { MessageHandlerCallbacks, MessageHandlerDependencies };
@@ -37,7 +38,7 @@ export class BaseMessageHandler {
     private notificationHandlers: GpacNotificationHandlers,
     private callbacks: MessageHandlerCallbacks,
     private dependencies: MessageHandlerDependencies,
-    private onMessage?: (message: any) => void,
+    private onMessage?: (message: IncomingWsMessage) => void,
   ) {
     // Initialize message batcher (RAF-based batching for logs only)
     this.messageBatcher = new WSMessageBatcher();
@@ -86,7 +87,7 @@ export class BaseMessageHandler {
   public handleJsonMessage(_: GpacTransport, dataView: DataView): void {
     try {
       const text = new TextDecoder().decode(dataView.buffer);
-      const data = JSON.parse(text);
+      const data = JSON.parse(text) as IncomingWsMessage;
       this.processGpacMessage(data);
     } catch (error) {
       // Error handling
@@ -97,7 +98,7 @@ export class BaseMessageHandler {
     try {
       const text = new TextDecoder().decode(dataView.buffer);
       if (text.startsWith('{')) {
-        const data = JSON.parse(text);
+        const data = JSON.parse(text) as IncomingWsMessage;
         this.processGpacMessage(data);
       }
     } catch (error) {
@@ -105,7 +106,7 @@ export class BaseMessageHandler {
     }
   }
 
-  private processGpacMessage(data: any): void {
+  private processGpacMessage(data: IncomingWsMessage): void {
     if (!data.message) {
       return;
     }
