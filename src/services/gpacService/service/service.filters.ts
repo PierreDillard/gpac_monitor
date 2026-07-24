@@ -72,7 +72,7 @@ export const filterMethods = {
     idx: number,
     name: string,
     argName: string,
-    newValue: string | number | boolean,
+    newValue: string | number | boolean | null,
     isLoaded: () => boolean,
   ): Promise<void> {
     if (!isLoaded()) {

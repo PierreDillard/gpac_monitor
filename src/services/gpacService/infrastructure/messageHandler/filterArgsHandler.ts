@@ -52,7 +52,7 @@ export class FilterArgsHandler {
     idx: number,
     name: string,
     argName: string,
-    newValue: string | number | boolean,
+    newValue: string | number | boolean | null,
   ): Promise<void> {
     this.ensureLoaded();
 

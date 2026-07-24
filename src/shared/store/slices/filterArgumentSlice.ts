@@ -10,7 +10,7 @@ import type { RootState } from '@/shared/store';
 export interface ArgumentUpdate {
   filterId: string;
   name: string;
-  value: any;
+  value: GpacArgumentValue;
   status: 'idle' | 'pending' | 'success' | 'error';
   error?: string;
 }
@@ -100,7 +100,7 @@ export const {
 
 export const updateFilterArgument = createAsyncThunk<
   void,
-  { filterId: string; argName: string; argValue: any },
+  { filterId: string; argName: string; argValue: GpacArgumentValue },
   { state: RootState }
 >(
   'filterArgument/updateFilterArgument',
@@ -109,6 +109,19 @@ export const updateFilterArgument = createAsyncThunk<
 
     if (!filterName) {
       throw new Error(`Filter with ID ${filterId} not found`);
+    }
+
+    if (
+      typeof argValue !== 'string' &&
+      typeof argValue !== 'number' &&
+      typeof argValue !== 'boolean' &&
+      argValue !== null
+    ) {
+      console.warn(
+        `[updateFilterArgument] Unsupported value type for ${argName}, skipping update:`,
+        argValue,
+      );
+      return;
     }
 
     // Send update to GPAC

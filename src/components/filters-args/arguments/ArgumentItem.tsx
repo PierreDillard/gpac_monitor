@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from '../../ui/tooltip';
 import { getBorderStyle } from '../utils/argumentStyles';
-import { GpacArgument, GPACTypes } from '../types';
+import { GpacArgument, GPACTypes, InputValue } from '../types';
 import { ArgumentUpdate } from '@/shared/store/slices/filterArgumentSlice';
 
 type GPACValue = GPACTypes[keyof GPACTypes] | null;
@@ -116,7 +116,11 @@ const ArgumentItem = memo(
               update: !!arg.update,
               update_sync: !!arg.update_sync,
             }}
-            value={updateStatus?.value ?? arg.value}
+            value={
+              (updateStatus?.value ?? arg.value ?? undefined) as
+                | InputValue<keyof GPACTypes>
+                | undefined
+            }
             onChange={handleChange}
             rules={{
               disabled: !arg.update || isPending || isHistory,

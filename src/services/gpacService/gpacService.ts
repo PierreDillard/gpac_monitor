@@ -194,7 +194,7 @@ export class GpacService implements IGpacCommunication {
     idx: number,
     name: string,
     argName: string,
-    newValue: string | number | boolean,
+    newValue: string | number | boolean | null,
   ): Promise<void> {
     return filterMethods.updateFilterArg(
       this.state,
