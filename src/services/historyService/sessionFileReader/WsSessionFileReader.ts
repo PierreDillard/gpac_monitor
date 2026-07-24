@@ -155,9 +155,13 @@ export class WsSessionFileReader {
     command: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
+      if (!this.ws) {
+        reject(new Error('WsSessionFileReader: not connected'));
+        return;
+      }
       const key = this.commandKey(command);
       this.pending.set(key, { resolve, reject });
-      this.ws!.send(`json:${JSON.stringify(command)}`);
+      this.ws.send(`json:${JSON.stringify(command)}`);
     });
   }
 

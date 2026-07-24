@@ -105,8 +105,11 @@ export class FilterArgsHandler {
       subscribable = new UpdatableSubscribable<FilterArgument[]>([]);
       this.filterArgsSubscribables.set(filterIdx, subscribable);
     }
+    const activeSubscribable = subscribable;
 
-    const unsubscribe = subscribable.subscribe(callback, { immediate: false });
+    const unsubscribe = activeSubscribable.subscribe(callback, {
+      immediate: false,
+    });
 
     if (isFirstSubscriber) {
       this.subscribeToFilterArgs(filterIdx);
@@ -114,7 +117,7 @@ export class FilterArgsHandler {
 
     return () => {
       unsubscribe();
-      if (!subscribable!.hasSubscribers) {
+      if (!activeSubscribable.hasSubscribers) {
         this.filterArgsSubscribables.delete(filterIdx);
       }
     };
