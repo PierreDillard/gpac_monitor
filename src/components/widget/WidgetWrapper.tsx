@@ -3,6 +3,7 @@ import { OverlayScrollbarsComponent } from 'overlayscrollbars-react';
 import { useAppDispatch, useAppSelector } from '@/shared/hooks/redux';
 import { useOptimizedResize } from '@/shared/hooks/ui/useOptimizedResize';
 import { widgetIcons } from './widgetIcons';
+import WidgetErrorBoundary from './WidgetErrorBoundary';
 
 import { LuX, LuRotateCcw } from 'react-icons/lu';
 import {
@@ -197,7 +198,9 @@ const WidgetWrapper = ({
           options={{ scrollbars: { autoHide: 'leave', autoHideDelay: 400 } }}
           className={`flex-1 bg-monitor-surface no-drag gpu-optimized ${isResizing ? 'contain-layout contain-style' : ''}`}
         >
-          {children}
+          <WidgetErrorBoundary widgetTitle={widget?.title}>
+            {children}
+          </WidgetErrorBoundary>
         </OverlayScrollbarsComponent>
       )}
     </div>
