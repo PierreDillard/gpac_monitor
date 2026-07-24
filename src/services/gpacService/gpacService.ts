@@ -63,7 +63,7 @@ export class GpacService implements IGpacCommunication {
     };
 
     const messageHandler = new BaseMessageHandler(
-      {} as GpacNotificationHandlers,
+      {},
       storeCallbacks,
       dependencies,
       (message: IncomingWsMessage) => {

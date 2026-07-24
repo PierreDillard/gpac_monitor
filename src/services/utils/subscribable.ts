@@ -29,7 +29,7 @@ interface ExtraData {
 }
 
 export class Subscribable<D, N = undefined, E extends object = ExtraData> {
-  protected data: D = {} as D;
+  protected data: D;
 
   /**
    * A list of channels grouped by their debounce time.
