@@ -63,4 +63,31 @@ describe('filterStatsEqual', () => {
     next.ipids!['ipid-1'] = makePID({ name: 'ipid-1' });
     expect(filterStatsEqual(snapshot(), next)).toBe(false);
   });
+
+  it('does not throw when a PID has no stats yet (server omits it before first tick)', () => {
+    const prev = snapshot();
+    prev.ipids!['ipid-0'] = makePID({
+      name: 'ipid-0',
+      stats: undefined as unknown as ReturnType<typeof makeStats>,
+    });
+    const next = snapshot();
+
+    expect(() => filterStatsEqual(prev, next)).not.toThrow();
+    expect(filterStatsEqual(prev, next)).toBe(false);
+  });
+
+  it('two PIDs both missing stats are still considered equal', () => {
+    const prev = snapshot();
+    const next = snapshot();
+    prev.ipids!['ipid-0'] = makePID({
+      name: 'ipid-0',
+      stats: undefined as unknown as ReturnType<typeof makeStats>,
+    });
+    next.ipids!['ipid-0'] = makePID({
+      name: 'ipid-0',
+      stats: undefined as unknown as ReturnType<typeof makeStats>,
+    });
+
+    expect(filterStatsEqual(prev, next)).toBe(true);
+  });
 });

@@ -17,24 +17,33 @@ const lastTsSentEqual = (
   return prevNum === nextNum && prevDen === nextDen;
 };
 
-const pidStatsEqual = (prev: PIDStats, next: PIDStats): boolean =>
-  prev.disconnected === next.disconnected &&
-  prev.average_bitrate === next.average_bitrate &&
-  prev.max_bitrate === next.max_bitrate &&
-  prev.average_process_rate === next.average_process_rate &&
-  prev.max_process_rate === next.max_process_rate &&
-  prev.nb_processed === next.nb_processed &&
-  (prev.average_process_time ?? null) === (next.average_process_time ?? null) &&
-  prev.max_process_time === next.max_process_time &&
-  prev.total_process_time === next.total_process_time &&
-  lastTsSentEqual(prev.last_ts_sent, next.last_ts_sent) &&
-  (prev.first_process_time ?? null) === (next.first_process_time ?? null) &&
-  (prev.last_process_time ?? null) === (next.last_process_time ?? null) &&
-  (prev.buffer_time ?? null) === (next.buffer_time ?? null) &&
-  (prev.nb_buffer_units ?? null) === (next.nb_buffer_units ?? null) &&
-  (prev.max_buffer_time ?? null) === (next.max_buffer_time ?? null) &&
-  (prev.max_playout_time ?? null) === (next.max_playout_time ?? null) &&
-  (prev.min_playout_time ?? null) === (next.min_playout_time ?? null);
+const pidStatsEqual = (
+  prev: PIDStats | undefined,
+  next: PIDStats | undefined,
+): boolean => {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  return (
+    prev.disconnected === next.disconnected &&
+    prev.average_bitrate === next.average_bitrate &&
+    prev.max_bitrate === next.max_bitrate &&
+    prev.average_process_rate === next.average_process_rate &&
+    prev.max_process_rate === next.max_process_rate &&
+    prev.nb_processed === next.nb_processed &&
+    (prev.average_process_time ?? null) ===
+      (next.average_process_time ?? null) &&
+    prev.max_process_time === next.max_process_time &&
+    prev.total_process_time === next.total_process_time &&
+    lastTsSentEqual(prev.last_ts_sent, next.last_ts_sent) &&
+    (prev.first_process_time ?? null) === (next.first_process_time ?? null) &&
+    (prev.last_process_time ?? null) === (next.last_process_time ?? null) &&
+    (prev.buffer_time ?? null) === (next.buffer_time ?? null) &&
+    (prev.nb_buffer_units ?? null) === (next.nb_buffer_units ?? null) &&
+    (prev.max_buffer_time ?? null) === (next.max_buffer_time ?? null) &&
+    (prev.max_playout_time ?? null) === (next.max_playout_time ?? null) &&
+    (prev.min_playout_time ?? null) === (next.min_playout_time ?? null)
+  );
+};
 
 export const pidPropertiesEqual = (
   prev: PIDproperties,

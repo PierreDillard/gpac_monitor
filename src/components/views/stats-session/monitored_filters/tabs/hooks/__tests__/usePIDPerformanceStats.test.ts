@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import type { PIDStats } from '@/types/domain/gpac/filter-stats';
 import { usePIDPerformanceStats } from '../usePIDPerformanceStats';
 import { makePID, makeStats } from './fixtures';
 
@@ -69,5 +70,18 @@ describe('usePIDPerformanceStats — sanitisation overflow uint32', () => {
     const pid = makePID({ stats: makeStats({ last_ts_sent: ts }) });
     const { result } = renderHook(() => usePIDPerformanceStats(pid));
     expect(result.current.last_ts_sent).toEqual(ts);
+  });
+});
+
+describe('usePIDPerformanceStats — pid.stats absent (server omits it before first tick)', () => {
+  it('does not throw and returns safe defaults when stats is undefined', () => {
+    const pid = makePID({ stats: undefined as unknown as PIDStats });
+    const { result } = renderHook(() => usePIDPerformanceStats(pid));
+
+    expect(result.current.disconnected).toBe(false);
+    expect(result.current.average_bitrate).toBeNull();
+    expect(result.current.max_bitrate).toBeNull();
+    expect(result.current.nb_processed).toBe(0);
+    expect(result.current.last_ts_sent).toBeNull();
   });
 });

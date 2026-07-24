@@ -23,7 +23,9 @@ const CustomNodeBase: React.FC<CustomNodeProps> = ({
   selected,
   ...nodeProps
 }) => {
-  const { label, ipid, opid, nb_ipid, nb_opid } = data;
+  const { label, nb_ipid, nb_opid } = data;
+  const ipid = data.ipid ?? [];
+  const opid = data.opid ?? [];
   const { hasError, hasWarning } = useFilterAlerts(data.idx);
   const sessionType = useMemo(() => determineFilterSessionType(data), [data]);
   const [textColor, backgroundColor] = useGraphColors({
@@ -277,8 +279,8 @@ const CustomNode = memo(CustomNodeBase, (prevProps, nextProps) => {
     prevProps.selected === nextProps.selected &&
     prevProps.data.isMonitored === nextProps.data.isMonitored &&
     prevProps.data.isStalled === nextProps.data.isStalled &&
-    arePidListsEqual(prevProps.data.ipid, nextProps.data.ipid) &&
-    arePidListsEqual(prevProps.data.opid, nextProps.data.opid)
+    arePidListsEqual(prevProps.data.ipid ?? [], nextProps.data.ipid ?? []) &&
+    arePidListsEqual(prevProps.data.opid ?? [], nextProps.data.opid ?? [])
   );
 });
 
