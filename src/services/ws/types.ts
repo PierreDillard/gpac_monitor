@@ -106,7 +106,7 @@ export interface IpidPropsResponseMessage {
   message: 'ipid_props_response';
   filterIdx: number;
   ipidIdx: number;
-  properties: PidPropsMap;
+  properties: PidPropsMap & { error?: string };
 }
 
 export interface CommandLineResponseMessage {

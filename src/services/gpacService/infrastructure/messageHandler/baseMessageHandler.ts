@@ -1,5 +1,4 @@
 import { GpacTransport } from '../../../ws/GpacTransport';
-import { GpacNodeData } from '../../../../types/domain/gpac/model';
 import { GpacNotificationHandlers } from '../../types';
 import { generateID } from '@/utils/core';
 import { SessionStatsHandler } from './sessionStatsHandler';
@@ -20,6 +19,14 @@ import {
   LogStatusResponse,
   LogConfigChangedResponse,
   IncomingWsMessage,
+  FiltersMessage,
+  UpdateMessage,
+  DetailsMessage,
+  SessionStatsMessage,
+  CpuStatsMessage,
+  FilterStatsMessage,
+  IpidPropsResponseMessage,
+  SessionEndMessage,
 } from '@/services/ws/types';
 
 export type { MessageHandlerCallbacks, MessageHandlerDependencies };
@@ -178,38 +185,38 @@ export class BaseMessageHandler {
     this.onMessage?.(data);
   }
 
-  private handleFiltersMessage(data: any): void {
+  private handleFiltersMessage(data: FiltersMessage): void {
     this.callbacks.onSetLoading(false);
     this.callbacks.onUpdateGraphData(data.filters);
 
     if (data.filters) {
       this.callbacks.onFilterStatuses(
-        data.filters.map((filter: GpacNodeData) => ({
+        data.filters.map((filter) => ({
           idx: filter.idx,
           status: filter.status,
         })),
       );
-      data.filters.forEach((filter: GpacNodeData) => {
+      data.filters.forEach((filter) => {
         this.notificationHandlers.onFilterUpdate?.(filter);
       });
     }
   }
 
-  private handleUpdateMessage(data: any): void {
+  private handleUpdateMessage(data: UpdateMessage): void {
     if (Array.isArray(data.filters)) {
       this.callbacks.onUpdateGraphData(data.filters);
     }
   }
 
-  private handleDetailsMessage(data: any): void {
+  private handleDetailsMessage(data: DetailsMessage): void {
     if (!data.filter) return;
     this.filterArgsHandler.handleFilterArgs(data);
   }
 
-  private handleSessionStatsMessage(data: any): void {
+  private handleSessionStatsMessage(data: SessionStatsMessage): void {
     if (data.stats && Array.isArray(data.stats)) {
       this.callbacks.onFilterStatuses(
-        data.stats.map((stat: any) => ({ idx: stat.idx, status: stat.status })),
+        data.stats.map((stat) => ({ idx: stat.idx, status: stat.status })),
       );
       this.sessionStatsHandler.handleSessionStats(data.stats);
       this.callbacks.onUpdateSessionStats({
@@ -219,14 +226,14 @@ export class BaseMessageHandler {
     }
   }
 
-  private handleCpuStatsMessage(data: any): void {
+  private handleCpuStatsMessage(data: CpuStatsMessage): void {
     if (data.stats) {
       // Process immediately (low frequency: ~6 msgs/sec)
       this.cpuStatsHandler.handleCPUStats(data.stats);
     }
   }
 
-  private handleFilterStatsMessage(data: any): void {
+  private handleFilterStatsMessage(data: FilterStatsMessage): void {
     if (data.idx !== undefined) {
       this.callbacks.onFilterStatuses([{ idx: data.idx, status: data.status }]);
       this.callbacks.onUpdateFilterStats({
@@ -267,11 +274,11 @@ export class BaseMessageHandler {
     }
   }
 
-  private handleIpidPropsResponseMessage(data: any): void {
+  private handleIpidPropsResponseMessage(data: IpidPropsResponseMessage): void {
     this.pidPropsHandler.handleIpidPropsResponse(data);
   }
 
-  private handleSessionEnd(data: any): void {
+  private handleSessionEnd(data: SessionEndMessage): void {
     // Mark as normal end of session (to avoid showing error message)
     this.dependencies.markEndOfSession();
 
