@@ -102,12 +102,14 @@ export interface GraphInputPid {
   name: string;
   source_idx: number;
   stream_type: GpacStreamType;
+  ID: number;
 }
 
 export interface GraphOutputPid {
   pid_index: number;
   name: string;
   stream_type: GpacStreamType;
+  ID: number;
 }
 
 export interface GraphFilterData {
