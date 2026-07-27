@@ -23,6 +23,11 @@ function formatSessionId(date) {
     return `${datePart}_${timePart}`;
 }
 
+/**
+ * HistoryWriter - writes one segment's chunks/logs/checkpoints/manifest to disk.
+ * @param {string} historyDir
+ * @param {string} [sessionId]
+ */
 function HistoryWriter(historyDir, sessionId) {
     const baseDir = historyDir || 'history';
     const id = sessionId || formatSessionId(new Date());
@@ -171,4 +176,4 @@ function HistoryWriter(historyDir, sessionId) {
     };
 }
 
-export { HistoryWriter, writeFileAtomic };
+export { HistoryWriter, writeFileAtomic, formatSessionId };

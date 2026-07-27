@@ -1,5 +1,5 @@
 import { Sys as sys } from 'gpaccore';
-import { HistoryWriter } from './HistoryWriter.js';
+import { HistorySessionWriter } from './HistorySessionWriter.js';
 import { SnapshotBuilder } from './SnapshotBuilder.js';
 import { PidDataCollector } from '../JSClient/Filters/PID/PidDataCollector.js';
 import { logHub } from '../JSClient/Sys/Utils/LogHub.js';
@@ -9,11 +9,17 @@ const LOG_ID = '_hist_';
 const LOG_LEVEL_ERROR = 1;
 const LOG_LEVEL_WARNING = 2;
 
+/**
+ * HistoryCollector - taps the live session (graph/stats/logs/args) and forwards it to a HistorySessionWriter; no-op when historyDir is falsy.
+ * @param {string} historyDir
+ */
 function HistoryCollector(historyDir) {
     this.snapshotBuilder = new SnapshotBuilder();
     this._graphVersion = null;
     this.enabled = !!historyDir;
-    this.writer = new HistoryWriter(historyDir);
+    this.writer = new HistorySessionWriter(historyDir, undefined, {
+        buildSegmentSnapshot: (rolloverTsUs) => this._buildRolloverSnapshot(rolloverTsUs),
+    });
     this.pidCollector = new PidDataCollector();
     this.snapshotWritten = false;
     this.lastRecordUs = 0;

@@ -1,6 +1,6 @@
 import * as os from 'os';
-import { HistoryWriter, writeFileAtomic } from './HistoryWriter.js';
-import { buildJournalPointer, serializeJournalIndex } from './helpers/journalIndex.js';
+import { HistoryWriter, writeFileAtomic, formatSessionId } from './HistoryWriter.js';
+import { serializeJournalIndex } from './helpers/journalIndex.js';
 import {
     SEGMENT_DURATION_US,
     DEFAULT_RETENTION_MAX_SEGMENTS,
@@ -30,9 +30,16 @@ function removeSegmentDir(sessionDir, segmentDir) {
     os.remove(dir);
 }
 
+/**
+ * HistorySessionWriter - root orchestrator: owns session.json/events_index.json/journal_index.json,
+ * delegates chunk/log/checkpoint writes to the current segment's HistoryWriter, handles rollover/retention.
+ * @param {string} historyDir
+ * @param {string} [sessionId]
+ * @param {{ retentionMaxSegments?: number, buildSegmentSnapshot?: (rolloverTsUs: number) => object|undefined }} [options]
+ */
 function HistorySessionWriter(historyDir, sessionId, options) {
     const baseDir = historyDir || 'history';
-    const id = sessionId || String(Date.now());
+    const id = sessionId || formatSessionId(new Date());
     const dir = `${baseDir}/${id}`;
     const segmentsDir = `${dir}/segments`;
     const retentionMaxSegments = (options && options.retentionMaxSegments !== undefined)
@@ -110,11 +117,6 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         }
     };
 
-    this._getEventsIndexPointer = function() {
-        if (this._eventsIndex.length === 0) return undefined;
-        return { file: 'events_index.json', format: 'array-v1', eventCount: this._eventsIndex.length };
-    };
-
     this._writeEventsIndex = function() {
         if (this._eventsIndex.length === 0) return;
         const sorted = [...this._eventsIndex].sort((a, b) => a.ts_us - b.ts_us);
@@ -135,12 +137,9 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         const sessionIndex = {
             version: 1,
             startUs: this._sessionStartUs,
-            endUs: this._lastEventUs,
             segmentDurationUs: SEGMENT_DURATION_US,
-            retention: { maxSegments: retentionMaxSegments },
-            segments: this._segments.map((segment) => ({ ...segment })),
-            eventsIndex: this._getEventsIndexPointer(),
-            journalIndex: buildJournalPointer(this._journalTsUs, this._journalTypes),
+            retentionMaxSegments: retentionMaxSegments,
+            segments: this._segments.map((segment) => ({ index: segment.index, fromUs: segment.fromUs })),
         };
         writeFileAtomic(`${dir}/session.json`, JSON.stringify(sessionIndex) + '\n');
     };

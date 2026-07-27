@@ -3,6 +3,13 @@ import * as std from 'std';
 import * as os from 'os';
 import { HistorySessionWriter } from './HistorySessionWriter.js';
 
+describe('HistorySessionWriter default sessionId', () => {
+  it('generates a sessionId matching HistoryFileReader\'s VALID_SESSION_ID format when omitted, not a raw epoch-ms string', () => {
+    const writer = new HistorySessionWriter('test-history');
+    expect(writer.sessionId).toMatch(/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/);
+  });
+});
+
 describe('HistorySessionWriter proxy delegation', () => {
   it('delegates writeSnapshot/writeEvent/writeLog/writeCheckpoint to segment 0000', () => {
     const writer = new HistorySessionWriter('test-history', 'sessA');
@@ -103,6 +110,50 @@ describe('HistorySessionWriter session.json', () => {
     expect(paths.some((path) => path.endsWith('journal_index.json.tmp'))).toBe(false);
 
     openSpy.mockRestore();
+  });
+});
+
+describe('HistorySessionWriter session.json time-only root index', () => {
+  const DAY_US = 24 * 60 * 60 * 1000 * 1000;
+
+  it('emits only version/startUs/segmentDurationUs/retentionMaxSegments/segments[index,fromUs] after a rollover', () => {
+    const written = {};
+    const openSpy = vi.spyOn(std, 'open').mockImplementation((path) => {
+      written[path] = '';
+      return {
+        puts: (content) => { written[path] += content; },
+        close: () => {},
+      };
+    });
+    const renameSpy = vi.spyOn(os, 'rename').mockReturnValue(0);
+    const writer = new HistorySessionWriter('test-history', 'sessQ');
+
+    writer.addEventIndex(1000, 'graph-change');
+    writer.recordJournalFact(1000, 1);
+    writer.writeEvent('{"a":1}', 0);
+    writer.writeEvent('{"a":2}', DAY_US);
+
+    const sessionIndex = JSON.parse(written['test-history/sessQ/session.json.tmp']);
+    expect(sessionIndex).toEqual({
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: DAY_US,
+      retentionMaxSegments: 30,
+      segments: [
+        { index: 0, fromUs: 0 },
+        { index: 1, fromUs: DAY_US },
+      ],
+    });
+    expect(sessionIndex).not.toHaveProperty('endUs');
+    expect(sessionIndex).not.toHaveProperty('eventsIndex');
+    expect(sessionIndex).not.toHaveProperty('journalIndex');
+    expect(sessionIndex.segments[0]).not.toHaveProperty('dir');
+    expect(sessionIndex.segments[0]).not.toHaveProperty('pinned');
+    expect(sessionIndex.segments[0]).not.toHaveProperty('done');
+    expect(sessionIndex.segments[0]).not.toHaveProperty('toUs');
+
+    openSpy.mockRestore();
+    renameSpy.mockRestore();
   });
 });
 
