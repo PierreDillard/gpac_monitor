@@ -155,6 +155,36 @@ describe('HistorySessionWriter session.json time-only root index', () => {
     openSpy.mockRestore();
     renameSpy.mockRestore();
   });
+
+  it('writes endUs and the last segment\'s explicit toUs only once the session is closed', () => {
+    const written = {};
+    const openSpy = vi.spyOn(std, 'open').mockImplementation((path) => {
+      written[path] = '';
+      return {
+        puts: (content) => { written[path] += content; },
+        close: () => {},
+      };
+    });
+    const renameSpy = vi.spyOn(os, 'rename').mockReturnValue(0);
+    const writer = new HistorySessionWriter('test-history', 'sessR');
+
+    writer.writeEvent('{"a":1}', 0);
+    writer.writeEvent('{"a":2}', 1000);
+    writer.writeSessionIndex();
+
+    let sessionIndex = JSON.parse(written['test-history/sessR/session.json.tmp']);
+    expect(sessionIndex).not.toHaveProperty('endUs');
+    expect(sessionIndex.segments[0]).not.toHaveProperty('toUs');
+
+    writer.close();
+
+    sessionIndex = JSON.parse(written['test-history/sessR/session.json.tmp']);
+    expect(sessionIndex.endUs).toBe(1000);
+    expect(sessionIndex.segments).toEqual([{ index: 0, fromUs: 0, toUs: 1000 }]);
+
+    openSpy.mockRestore();
+    renameSpy.mockRestore();
+  });
 });
 
 describe('HistorySessionWriter segment rollover', () => {

@@ -55,6 +55,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
     this._segments = [];
     this._sessionStartUs = null;
     this._lastEventUs = null;
+    this._closed = false;
     this._eventsIndex = [];
     this._journalTsUs = [];
     this._journalTypes = [];
@@ -134,13 +135,19 @@ function HistorySessionWriter(historyDir, sessionId, options) {
     this.writeSessionIndex = function() {
         this._writeEventsIndex();
         this._writeJournalIndex();
+        const lastIndex = this._segments.length - 1;
         const sessionIndex = {
             version: 1,
             startUs: this._sessionStartUs,
             segmentDurationUs: SEGMENT_DURATION_US,
             retentionMaxSegments: retentionMaxSegments,
-            segments: this._segments.map((segment) => ({ index: segment.index, fromUs: segment.fromUs })),
+            segments: this._segments.map((segment, index) => {
+                const entry = { index: segment.index, fromUs: segment.fromUs };
+                if (this._closed && index === lastIndex) entry.toUs = segment.toUs;
+                return entry;
+            }),
         };
+        if (this._closed) sessionIndex.endUs = this._lastEventUs;
         writeFileAtomic(`${dir}/session.json`, JSON.stringify(sessionIndex) + '\n');
     };
 
@@ -196,6 +203,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         const segment = this._currentSegment();
         segment.toUs = this._lastEventUs;
         segment.done = true;
+        this._closed = true;
         this.writeSessionIndex();
     };
 }
