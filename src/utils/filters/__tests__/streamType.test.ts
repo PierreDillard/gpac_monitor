@@ -29,14 +29,14 @@ describe('getFilterInfoByIdx', () => {
 
   it('derives video from opid stream_type Visual', () => {
     const filters = [
-      makeFilter(0, [], [{ pid_index: 0, name: 'vid', stream_type: 'Visual' }]),
+      makeFilter(0, [], [{ pid_index: 0, name: 'vid', stream_type: 'Visual', ID: 1 }]),
     ];
     expect(getFilterInfoByIdx(filters, 0).streamType).toBe('video');
   });
 
   it('derives audio from opid stream_type Audio', () => {
     const filters = [
-      makeFilter(0, [], [{ pid_index: 0, name: 'aud', stream_type: 'Audio' }]),
+      makeFilter(0, [], [{ pid_index: 0, name: 'aud', stream_type: 'Audio', ID: 1 }]),
     ];
     expect(getFilterInfoByIdx(filters, 0).streamType).toBe('audio');
   });
@@ -45,7 +45,7 @@ describe('getFilterInfoByIdx', () => {
     const filters = [
       makeFilter(
         0,
-        [{ pid_index: 0, name: 'aud', source_idx: 1, stream_type: 'Audio' }],
+        [{ pid_index: 0, name: 'aud', source_idx: 1, stream_type: 'Audio', ID: 1 }],
         [],
       ),
     ];
@@ -54,7 +54,7 @@ describe('getFilterInfoByIdx', () => {
 
   it('returns file when no PID has a recognized stream_type', () => {
     const filters = [
-      makeFilter(0, [], [{ pid_index: 0, name: 'x', stream_type: 'File' }]),
+      makeFilter(0, [], [{ pid_index: 0, name: 'x', stream_type: 'File', ID: 1 }]),
     ];
     expect(getFilterInfoByIdx(filters, 0).streamType).toBe('file');
   });

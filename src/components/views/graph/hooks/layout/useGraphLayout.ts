@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect, MutableRefObject } from 'react';
+import { useCallback, MutableRefObject } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import dagre from 'dagre';
-import { LayoutType, LayoutOptions } from '../../utils/GraphLayout';
 
 interface UseGraphLayoutProps {
   localNodes: Node[];
@@ -58,25 +57,6 @@ export const useGraphLayout = ({
   nodesRef,
   isApplyingLayout,
 }: UseGraphLayoutProps) => {
-  const [layoutOptions, setLayoutOptions] = useState<LayoutOptions>(() => {
-    try {
-      const savedLayout = localStorage.getItem('gpacMonitorLayout');
-      if (savedLayout) {
-        return JSON.parse(savedLayout) as LayoutOptions;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    return {
-      type: LayoutType.DAGRE,
-      direction: 'LR',
-      nodeSeparation: 150,
-      rankSeparation: 250,
-      respectExistingPositions: true,
-    };
-  });
-
   const applyLayoutWithNodes = useCallback(
     (nodes: Node[]) => {
       if (nodes.length === 0) return;
@@ -94,42 +74,11 @@ export const useGraphLayout = ({
     [localEdges, setLocalNodes, nodesRef, isApplyingLayout],
   );
 
-  const applyLayout = useCallback(() => {
-    applyLayoutWithNodes(localNodes);
-  }, [localNodes, applyLayoutWithNodes]);
-
   const autoLayout = useCallback(() => {
     applyLayoutWithNodes(localNodes);
   }, [localNodes, applyLayoutWithNodes]);
 
-  const handleLayoutChange = useCallback(
-    (newOptions: LayoutOptions) => {
-      if (localNodes.length === 0) return;
-      if (localNodes.some((node) => !node.measured)) return;
-
-      setLayoutOptions(newOptions);
-      applyLayoutWithNodes(localNodes);
-    },
-    [localNodes, applyLayoutWithNodes],
-  );
-
-  useEffect(() => {
-    try {
-      if (layoutOptions.type) {
-        localStorage.setItem(
-          'gpacMonitorLayout',
-          JSON.stringify(layoutOptions),
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [layoutOptions]);
-
   return {
-    layoutOptions,
-    handleLayoutChange,
     autoLayout,
-    applyLayout,
   };
 };

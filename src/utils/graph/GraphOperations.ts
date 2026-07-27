@@ -106,11 +106,13 @@ export function createEdgesFromFilters(
         STREAM_TYPE_TO_FILTER[pid.stream_type] ?? 'file';
       const filterColor = getFilterColor(filterType);
 
-      // Match source opid by stream_type, fallback to first
+      // Match source opid by native GPAC PID id (stable across the chain), fallback to
+      // stream_type, fallback to first
       const sourceFilter = filters.find((f) => f.idx === pid.source_idx);
       let sourceHandle: string | undefined;
       if (sourceFilter && sourceFilter.opid.length > 0) {
         const matchingOpid =
+          sourceFilter.opid.find((o) => o.ID === pid.ID) ??
           sourceFilter.opid.find((o) => o.stream_type === pid.stream_type) ??
           sourceFilter.opid[0];
         sourceHandle = `opid-${matchingOpid.pid_index}`;

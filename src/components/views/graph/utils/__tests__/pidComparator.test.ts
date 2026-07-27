@@ -11,6 +11,7 @@ const makePid = (
   name,
   stream_type,
   source_idx: 0,
+  ID: pid_index,
 });
 
 describe('arePidListsEqual', () => {

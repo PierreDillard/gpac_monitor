@@ -22,6 +22,7 @@ const staticFilter = (idx: number, name: string): GraphFilterData => ({
       name: 'Video',
       source_idx: 0,
       stream_type: GpacStreamType.Visual,
+      ID: 1,
     },
   ],
   opid: [],

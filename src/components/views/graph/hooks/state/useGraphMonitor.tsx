@@ -58,14 +58,13 @@ const useGraphMonitor = () => {
     [subscribedFilterIdxs],
   );
 
-  const { layoutOptions, handleLayoutChange, autoLayout, applyLayout } =
-    useGraphLayout({
-      localNodes,
-      localEdges,
-      setLocalNodes,
-      nodesRef,
-      isApplyingLayout,
-    });
+  const { autoLayout } = useGraphLayout({
+    localNodes,
+    localEdges,
+    setLocalNodes,
+    nodesRef,
+    isApplyingLayout,
+  });
 
   const { retryConnection } = useGraphConnection({
     setConnectionError,
@@ -187,11 +186,6 @@ const useGraphMonitor = () => {
     setHasLayoutRun(true);
   }, [nodesInitialized, localNodes, hasLayoutRun, autoLayout]);
 
-  const triggerLayout = () => {
-    setHasLayoutRun(false);
-    autoLayout();
-  };
-
   return {
     isLoading,
     connectionError,
@@ -202,11 +196,6 @@ const useGraphMonitor = () => {
     handleEdgesChange,
     handleNodeClick,
     handleEdgeClick,
-    layoutOptions,
-    handleLayoutChange,
-    autoLayout,
-    applyLayout,
-    triggerLayout,
     getFilterArgs,
     hasFilterArgs,
   };

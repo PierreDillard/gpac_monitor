@@ -14,9 +14,6 @@ const GraphMonitor = ({ id }: WidgetProps) => {
     handleEdgesChange,
     handleNodeClick,
     handleEdgeClick,
-    layoutOptions,
-    handleLayoutChange,
-    autoLayout,
   } = useGraphMonitor();
 
   return (
@@ -32,9 +29,6 @@ const GraphMonitor = ({ id }: WidgetProps) => {
         onEdgesChange={handleEdgesChange}
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
-        layoutOptions={layoutOptions}
-        onLayoutChange={handleLayoutChange}
-        onAutoLayout={autoLayout}
       />
     </>
   );
