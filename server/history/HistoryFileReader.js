@@ -1,11 +1,12 @@
 import * as std from 'std';
 import * as os from 'os';
 
-const ALLOWED_EXACT_FILES = ['snapshot.json', 'events.jsonl', 'manifest.json', 'logs.jsonl', 'journal_index.json'];
+const ALLOWED_EXACT_FILES = ['snapshot.json', 'events.jsonl', 'manifest.json', 'logs.jsonl', 'journal_index.json', 'session.json', 'events_index.json'];
 const VALID_SESSION_ID = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/;
 const VALID_CHUNK_FILE = /^chunks\/chunk_\d{4}\.jsonl$/;
 const VALID_LOG_CHUNK_FILE = /^logs\/logs_\d{4}\.jsonl$/;
 const VALID_CHECKPOINT_FILE = /^checkpoints\/cp_\d{4}\.json$/;
+const VALID_SEGMENT_FILE = /^segments\/\d{4}\/(chunks\/chunk_\d{4}\.jsonl|logs\/logs_\d{4}\.jsonl|checkpoints\/cp_\d{4}\.json|manifest\.json|snapshot\.json)$/;
 
 /**
  * HistoryFileReader - Read-only access to history sessions
@@ -28,11 +29,12 @@ function HistoryFileReader(historyDir) {
             const hasSnapshot = fileExists(`${dir}/snapshot.json`);
             const hasManifest = fileExists(`${dir}/manifest.json`);
             const hasEvents = fileExists(`${dir}/events.jsonl`);
-            if (!hasSnapshot && !hasManifest && !hasEvents) continue;
+            const hasSessionIndex = fileExists(`${dir}/session.json`);
+            if (!hasSnapshot && !hasManifest && !hasEvents && !hasSessionIndex) continue;
             const hasCheckpoints = dirHasFiles(`${dir}/checkpoints`, /^cp_\d{4}\.json$/);
             const sizeBytes = hasEvents ? fileSize(`${dir}/events.jsonl`) : 0;
             const isComplete = fileExists(`${dir}/done`);
-            sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete });
+            sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete, hasSessionIndex });
         }
         sessions.sort((a, b) => (a.sessionId < b.sessionId ? 1 : a.sessionId > b.sessionId ? -1 : 0));
         return sessions;
@@ -54,7 +56,7 @@ function HistoryFileReader(historyDir) {
         if (!VALID_SESSION_ID.test(sessionId)) {
             return { ok: false, error: 'session_not_found', detail: `Invalid sessionId: ${sessionId}` };
         }
-        const isAllowed = ALLOWED_EXACT_FILES.includes(fileName) || VALID_CHUNK_FILE.test(fileName) || VALID_LOG_CHUNK_FILE.test(fileName) || VALID_CHECKPOINT_FILE.test(fileName);
+        const isAllowed = ALLOWED_EXACT_FILES.includes(fileName) || VALID_CHUNK_FILE.test(fileName) || VALID_LOG_CHUNK_FILE.test(fileName) || VALID_CHECKPOINT_FILE.test(fileName) || VALID_SEGMENT_FILE.test(fileName);
         if (!isAllowed) {
             return { ok: false, error: 'file_not_allowed', detail: `File not allowed: ${fileName}` };
         }
