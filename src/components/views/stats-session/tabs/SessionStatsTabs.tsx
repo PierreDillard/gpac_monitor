@@ -1,14 +1,19 @@
-import { LuMonitorCheck, LuSquareArrowUpRight } from 'react-icons/lu';
+import { LuMonitorCheck, LuChevronRight } from 'react-icons/lu';
 import type { EnrichedFilterOverview } from '@/types/domain/gpac/model';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAppSelector } from '@/shared/hooks/redux';
 import { useDataMode } from '@/shared/hooks/data/useDataMode';
+import { getFilterIdxFromTab } from '../utils/filterMonitoringUtils';
+import {
+  FilterTabTrigger,
+  tabAccentClass,
+} from './components/FilterTabTrigger';
 
 interface StatsTabsProps {
   activeTab: string;
   onValueChange: (value: string) => void;
-  allFilters: EnrichedFilterOverview[]; // All available filters
+  allFilters: EnrichedFilterOverview[];
   onCloseTab: (idx: number, e: React.SyntheticEvent) => void;
   onDetachTab?: (
     idx: number,
@@ -19,6 +24,7 @@ interface StatsTabsProps {
 }
 
 export const StatsTabs: React.FC<StatsTabsProps> = ({
+  activeTab,
   onValueChange,
   allFilters,
   onCloseTab,
@@ -26,83 +32,100 @@ export const StatsTabs: React.FC<StatsTabsProps> = ({
   tabsRef,
 }) => {
   const { isHistory } = useDataMode();
-  // Read viewByFilter from Redux (single source of truth)
   const viewByFilter = useAppSelector((state) => state.widgets.viewByFilter);
 
-  // Derive inline filters from viewByFilter
   const inlineFilters = Object.entries(viewByFilter)
     .filter(([_, view]) => view?.mode === 'inline')
     .map(([idx]) => Number(idx));
 
+  // Active tab first
+  const activeFilterIdx = getFilterIdxFromTab(activeTab);
+  const orderedFilters =
+    activeFilterIdx !== null && inlineFilters.includes(activeFilterIdx)
+      ? [
+          activeFilterIdx,
+          ...inlineFilters.filter((idx) => idx !== activeFilterIdx),
+        ]
+      : inlineFilters;
+
+  const [hasHiddenTabs, setHasHiddenTabs] = useState(false);
+
+  useEffect(() => {
+    const tabStrip = tabsRef.current;
+    if (!tabStrip) return;
+    tabStrip.scrollTo({ left: 0 });
+    setHasHiddenTabs(tabStrip.scrollWidth > tabStrip.clientWidth + 1);
+  }, [activeTab, orderedFilters.length, tabsRef]);
+
+  // DOM only, no re-render
+  const handleShowNextTab = useCallback(() => {
+    const tabStrip = tabsRef.current;
+    if (!tabStrip) return;
+
+    const reachedEnd =
+      tabStrip.scrollLeft + tabStrip.clientWidth >= tabStrip.scrollWidth - 1;
+    if (reachedEnd) {
+      tabStrip.scrollTo({ left: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const stripRight = tabStrip.getBoundingClientRect().right;
+    const firstHiddenTab = Array.from(
+      tabStrip.querySelectorAll<HTMLElement>('[data-value]'),
+    ).find((trigger) => trigger.getBoundingClientRect().right > stripRight + 1);
+
+    firstHiddenTab?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'end',
+    });
+  }, [tabsRef]);
+
   return (
-    <TabsList
-      className="sticky top-0 z-50   w-full justify-start border-none bg-monitor-surface"
-      ref={tabsRef}
-    >
-      <TabsTrigger
-        value="main"
-        className={`flex items-center gap-1 data-[state=active]:border-b-2 ${isHistory ? 'data-[state=active]:border-history' : 'data-[state=active]:text-monitor-active-filter data-[state=active]:border-monitor-active-filter'}`}
-        data-value="main"
-        onClick={() => onValueChange('main')}
+    <div className="sticky top-0 z-50 flex w-full items-center bg-monitor-surface">
+      <TabsList
+        className="min-w-0 flex-1 justify-start overflow-hidden border-none bg-transparent"
+        ref={tabsRef}
       >
-        <LuMonitorCheck className="h-4 w-4" />
-        <span>Dashboard</span>
-      </TabsTrigger>
+        <TabsTrigger
+          value="main"
+          className={`flex shrink-0 items-center gap-1 ${tabAccentClass(isHistory)}`}
+          data-value="main"
+          onClick={() => onValueChange('main')}
+        >
+          <LuMonitorCheck className="h-4 w-4" />
+          <span>Dashboard</span>
+        </TabsTrigger>
 
-      {/* Tabs for inline filters (derived from viewByFilter) */}
-      {inlineFilters.map((filterIdx) => {
-        const filter = allFilters.find((f) => f.idx === filterIdx);
-        if (!filter) return null;
+        {orderedFilters.map((filterIdx) => {
+          const filter = allFilters.find((f) => f.idx === filterIdx);
+          if (!filter) return null;
 
-        return (
-          <TabsTrigger
-            key={`tab-${filterIdx}`}
-            value={`filter-${filterIdx}`}
-            className={`flex items-center gap-1 data-[state=active]:border-b-2 ${isHistory ? 'data-[state=active]:border-history' : 'data-[state=active]:text-monitor-active-filter data-[state=active]:border-monitor-active-filter'}`}
-            data-value={`filter-${filterIdx}`}
-            onClick={() => onValueChange(`filter-${filterIdx}`)}
-          >
-            <span>{filter.name}</span>
-            {onDetachTab && (
-              <span
-                className="ml-1 inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full hover:bg-slate-600"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDetachTab(filterIdx, filter.name, e);
-                }}
-                title="Detach as overlay"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.stopPropagation();
-                    onDetachTab(filterIdx, filter.name, e);
-                  }
-                }}
-              >
-                <LuSquareArrowUpRight />
-              </span>
-            )}
-            <span
-              className="ml-1 inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full hover:bg-slate-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCloseTab(filterIdx, e);
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.stopPropagation();
-                  onCloseTab(filterIdx, e);
-                }
-              }}
-            >
-              ×
-            </span>
-          </TabsTrigger>
-        );
-      })}
-    </TabsList>
+          return (
+            <FilterTabTrigger
+              key={`tab-${filterIdx}`}
+              filterIdx={filterIdx}
+              filterName={filter.name}
+              isHistory={isHistory}
+              onValueChange={onValueChange}
+              onCloseTab={onCloseTab}
+              onDetachTab={onDetachTab}
+            />
+          );
+        })}
+      </TabsList>
+
+      {hasHiddenTabs && (
+        <button
+          type="button"
+          onClick={handleShowNextTab}
+          title="Show next tab"
+          aria-label="Show next tab"
+          className="shrink-0 px-2 py-2 text-gray-500 hover:text-gray-300"
+        >
+          <LuChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </div>
   );
 };
