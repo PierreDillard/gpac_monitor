@@ -9,7 +9,7 @@ import { StableNumber } from '@/utils/performance/StableNumber';
 
 interface ToolSwitcherItemProps {
   tool: GpacLogTool;
-  levelsByTool: Record<GpacLogTool, GpacLogLevel>;
+  levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>;
   defaultAllLevel: GpacLogLevel;
   logCountsByTool: Record<string, number>;
   currentTool: GpacLogTool;

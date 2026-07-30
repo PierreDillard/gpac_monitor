@@ -27,7 +27,7 @@ export interface FilterAlerts {
 /** Redux state for logs management with per-tool levels and buffers */
 export interface LogsState {
   currentTool: GpacLogTool;
-  levelsByTool: Record<GpacLogTool, GpacLogLevel>;
+  levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>;
   defaultAllLevel: GpacLogLevel;
   visibleToolsFilter: GpacLogTool[]; // Tools to display when in "all" mode (empty = show all)
   buffers: Record<GpacLogTool, GpacLogEntry[]>;
@@ -38,7 +38,7 @@ export interface LogsState {
   viewMode: LogViewMode; // Current view mode (perTool or globalFilter)
   timestampMode: TimestampMode; // Timestamp mode for log sorting (session only)
   lastSentConfig: {
-    levelsByTool: Record<GpacLogTool, GpacLogLevel>;
+    levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>;
     defaultAllLevel: GpacLogLevel | null; // null means no config sent yet
   };
   alertsByFilterKey: Record<string, FilterAlerts>; // Warning/error counters per filter

@@ -76,16 +76,16 @@ const monitoredFilterSlice = createSlice({
       if (!state.dataByFilter[filterId]) {
         state.dataByFilter[filterId] = {};
       }
+      const data = state.dataByFilter[filterId];
 
-      if (!state.dataByFilter[filterId].network) {
-        state.dataByFilter[filterId].network = {
+      if (!data.network) {
+        data.network = {
           outband: [],
           inband: [],
         };
       }
 
-      const networkData = state.dataByFilter[filterId].network!;
-      const dataArray = networkData[type];
+      const dataArray = data.network[type];
 
       // Add new point
       dataArray.push(point);
@@ -151,9 +151,11 @@ const monitoredFilterSlice = createSlice({
     ) => {
       for (const [filterId, data] of Object.entries(action.payload)) {
         if (!state.dataByFilter[filterId]) state.dataByFilter[filterId] = {};
-        if (!state.dataByFilter[filterId].network)
-          state.dataByFilter[filterId].network = { outband: [], inband: [] };
-        const network = state.dataByFilter[filterId].network!;
+        const filterData = state.dataByFilter[filterId];
+
+        if (!filterData.network)
+          filterData.network = { outband: [], inband: [] };
+        const network = filterData.network;
         for (const direction of ['outband', 'inband'] as const) {
           network[direction].push(...data[direction]);
           if (network[direction].length > state.maxPoints)
@@ -163,9 +165,8 @@ const monitoredFilterSlice = createSlice({
             );
         }
         if (data.lastTaskTime.length) {
-          if (!state.dataByFilter[filterId].lastTaskTime)
-            state.dataByFilter[filterId].lastTaskTime = [];
-          const lastTaskTimePoints = state.dataByFilter[filterId].lastTaskTime!;
+          if (!filterData.lastTaskTime) filterData.lastTaskTime = [];
+          const lastTaskTimePoints = filterData.lastTaskTime;
           lastTaskTimePoints.push(...data.lastTaskTime);
           if (lastTaskTimePoints.length > state.maxPoints)
             lastTaskTimePoints.splice(

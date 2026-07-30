@@ -66,7 +66,7 @@ describe('ReportSection', () => {
     expect(screen.getByText('Report')).toBeInTheDocument();
   });
 
-  describe('T4 — Done row', () => {
+  describe('Done row', () => {
     it('does not show Done row when isDone is false', () => {
       render(<ReportSection metrics={twoMetrics} isDone={false} />);
       expect(screen.queryByText('Done')).not.toBeInTheDocument();

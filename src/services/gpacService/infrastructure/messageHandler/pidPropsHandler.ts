@@ -1,5 +1,6 @@
 import type { PidPropsMap } from '@/types/domain/gpac';
 import type { MessageHandlerDependencies } from './types';
+import type { IpidPropsResponseMessage } from '@/services/ws/types';
 
 /**
  * PidPropsHandler
@@ -25,11 +26,7 @@ export class PidPropsHandler {
    * Handle response from server (called by BaseMessageHandler)
    * @param data - Response message from server
    */
-  handleIpidPropsResponse(data: {
-    filterIdx: number;
-    ipidIdx: number;
-    properties: PidPropsMap;
-  }): void {
+  handleIpidPropsResponse(data: IpidPropsResponseMessage): void {
     const cacheKey = `${data.filterIdx}-${data.ipidIdx}`;
     const pending = this.pendingRequests.get(cacheKey);
 
@@ -44,7 +41,7 @@ export class PidPropsHandler {
 
     // Check for error
     if (data.properties?.error) {
-      pending.reject(new Error((data.properties as any).error));
+      pending.reject(new Error(data.properties.error));
       return;
     }
 

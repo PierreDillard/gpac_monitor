@@ -186,13 +186,13 @@ export class WebSocketBase implements GpacTransport {
   }
 
   public send(message: string): void {
-    if (!this.isConnected()) {
+    if (!this.socket || !this.isConnected()) {
       throw new Error('Cannot send message: WebSocket is not connected');
     }
 
     try {
       const formattedMessage = MessageFormatter.formatForSend(message);
-      this.socket!.send(formattedMessage);
+      this.socket.send(formattedMessage);
     } catch (error) {
       console.error('[WebSocket] Error sending message:', error);
       throw error;

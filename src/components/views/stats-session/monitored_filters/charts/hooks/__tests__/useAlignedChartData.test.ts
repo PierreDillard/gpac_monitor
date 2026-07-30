@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildAlignedData } from '../useAlignedChartData';
 
 describe('buildAlignedData', () => {
-  describe('E2 — union timeline', () => {
+  describe('union timeline', () => {
     it('single series: xs = timestamps, values match', () => {
       const result = buildAlignedData([
         {
@@ -96,7 +96,7 @@ describe('buildAlignedData', () => {
     });
   });
 
-  describe('E3 — windowUs', () => {
+  describe('windowUs', () => {
     it('keeps all samples when window covers full range', () => {
       const result = buildAlignedData(
         [

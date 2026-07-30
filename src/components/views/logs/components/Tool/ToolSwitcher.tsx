@@ -23,7 +23,7 @@ const EmptyToolFallback = React.memo(
     logCountsByTool,
   }: {
     tool: GpacLogTool;
-    levelsByTool: Record<GpacLogTool, GpacLogLevel>;
+    levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>;
     defaultAllLevel: GpacLogLevel;
     logCountsByTool: Record<string, number>;
   }) => {
@@ -75,7 +75,7 @@ const EmptyToolFallback = React.memo(
 
 interface ToolSwitcherProps {
   currentTool: GpacLogTool;
-  levelsByTool: Record<GpacLogTool, GpacLogLevel>;
+  levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>;
   defaultAllLevel: GpacLogLevel;
   visibleLogsCount: number;
   allLogCountsByTool: Record<string, number>;

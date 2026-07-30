@@ -1,5 +1,4 @@
 import type { MonitoredFilterStats } from '@/types/domain/gpac';
-import { WSMessageType } from '@/services/ws/types';
 import { UpdatableSubscribable } from '@/services/utils/UpdatableSubcribable';
 import { MessageThrottler } from '@/services/utils/MessageThrottler';
 import { SubscriptionLifecycle } from '@/services/utils/SubscriptionLifecycle';
@@ -32,7 +31,7 @@ export class FilterStatsHandler {
     this.ensureLoaded();
     return this.lifecycle.subscribe(idx, () =>
       this.dependencies.send({
-        type: WSMessageType.SUBSCRIBE_FILTER_STATS,
+        type: 'subscribe_filter',
         id: generateID(),
         idx,
       }),
@@ -43,7 +42,7 @@ export class FilterStatsHandler {
     this.ensureLoaded();
     return this.lifecycle.unsubscribe(idx, () =>
       this.dependencies.send({
-        type: WSMessageType.UNSUBSCRIBE_FILTER_STATS,
+        type: 'unsubscribe_filter',
         id: generateID(),
         idx,
       }),

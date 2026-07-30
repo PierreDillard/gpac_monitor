@@ -14,7 +14,7 @@ import {
 export function analyzeConfigChanges(
   changes: Array<{ tool: string; level: GpacLogLevel }>,
   defaultAllLevel: GpacLogLevel,
-  lastSentLevelsByTool: Record<GpacLogTool, GpacLogLevel>,
+  lastSentLevelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>,
 ) {
   const backendRequiredChanges: string[] = [];
   let reason = '';

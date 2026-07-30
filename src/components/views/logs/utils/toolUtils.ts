@@ -3,7 +3,7 @@ import { TOOL_DISPLAY_NAMES } from './constants';
 
 export const getEffectiveLevel = (
   tool: GpacLogTool,
-  levelsByTool: Record<GpacLogTool, GpacLogLevel>,
+  levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>,
   defaultAllLevel: GpacLogLevel,
 ): GpacLogLevel => {
   return tool === GpacLogTool.ALL

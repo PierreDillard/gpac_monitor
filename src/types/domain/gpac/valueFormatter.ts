@@ -10,7 +10,7 @@ import type { GPACTypes } from './gpac_args';
  * Supports all GPACTypes
  */
 export function formatGpacValue(
-  value: any,
+  value: unknown,
   type: keyof GPACTypes | string,
 ): string {
   if (value === null || value === undefined) return 'N/A';
@@ -35,7 +35,7 @@ export function formatGpacValue(
     case 'uint':
     case 'lsint':
     case 'luint':
-      return value.toString();
+      return String(value);
 
     // Floats
     case 'flt':
@@ -45,18 +45,18 @@ export function formatGpacValue(
       if (typeof value === 'number') {
         return value.toFixed(3).replace(/\.?0+$/, '');
       }
-      return value.toString();
+      return String(value);
 
     // Strings
     case 'str':
     case 'cstr':
     case 'string':
     case 'name':
-      return value;
+      return String(value);
 
     // FourCC codes
     case '4cc':
-      return value;
+      return String(value);
 
     // Media formats
     case 'pfmt':
@@ -64,7 +64,7 @@ export function formatGpacValue(
     case 'afmt':
     case 'audiofmt':
     case 'pcmfmt':
-      return value;
+      return String(value);
 
     // Color properties
     case 'cprm':
@@ -73,7 +73,7 @@ export function formatGpacValue(
     case 'cicp_colr_transfer':
     case 'cmxc':
     case 'cicp_colr_matrix':
-      return value;
+      return String(value);
 
     // Vectors/Arrays
     case 'v2di':

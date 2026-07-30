@@ -47,7 +47,8 @@ export class HistoryController {
   }
 
   private handleReplayEvent = (event: HistoryEvent): void => {
-    this.adapter!.handleEvent(event);
+    if (!this.adapter) return;
+    this.adapter.handleEvent(event);
     this.scheduleBadgeIfNeeded(event);
   };
 
@@ -67,8 +68,8 @@ export class HistoryController {
   private handlePlaybackTick = (currentTimeUs: number): void => {
     this.flushVisibleLogs(currentTimeUs);
     const expired = this.badgeExpiration.tick(currentTimeUs);
-    if (expired.length > 0) {
-      this.adapter!.clearExpiredBadges(expired);
+    if (expired.length > 0 && this.adapter) {
+      this.adapter.clearExpiredBadges(expired);
     }
     if (this.manifest && this.preloader) {
       this.preloader.updatePlayingChunkIndex(currentTimeUs);

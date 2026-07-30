@@ -3,7 +3,6 @@ import type { CPUStats } from '@/types/domain/system/index';
 import { UpdatableSubscribable } from '@/services/utils/UpdatableSubcribable';
 import { MessageThrottler } from '@/services/utils/MessageThrottler';
 import { SubscriptionLifecycle } from '@/services/utils/SubscriptionLifecycle';
-import { WSMessageType } from '@/services/ws/types';
 import { MessageHandlerDependencies } from './types';
 
 import { generateID } from '@/utils/core';
@@ -30,7 +29,7 @@ export class CPUStatsHandler {
     this.ensureLoaded();
     return this.lifecycle.subscribe(undefined, () =>
       this.dependencies.send({
-        type: WSMessageType.SUBSCRIBE_CPU_STATS,
+        type: 'subscribe_cpu_stats',
         id: generateID(),
       }),
     );
@@ -40,7 +39,7 @@ export class CPUStatsHandler {
     this.ensureLoaded();
     return this.lifecycle.unsubscribe(undefined, () =>
       this.dependencies.send({
-        type: WSMessageType.UNSUBSCRIBE_CPU_STATS,
+        type: 'unsubscribe_cpu_stats',
         id: generateID(),
       }),
     );

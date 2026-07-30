@@ -1,7 +1,6 @@
 import { UpdatableSubscribable } from '@/services/utils/UpdatableSubcribable';
 import { MessageThrottler } from '@/services/utils/MessageThrottler';
 import { SubscriptionLifecycle } from '@/services/utils/SubscriptionLifecycle';
-import { WSMessageType } from '@/services/ws/types';
 import { SessionFilterStatistics } from '@/types/domain/gpac/index';
 import { generateID } from '@/utils/core';
 import { MessageHandlerDependencies } from './types';
@@ -30,7 +29,7 @@ export class SessionStatsHandler {
     this.ensureLoaded();
     return this.lifecycle.subscribe(undefined, () =>
       this.dependencies.send({
-        type: WSMessageType.SUBSCRIBE_SESSION,
+        type: 'subscribe_session',
         id: generateID(),
       }),
     );
@@ -40,7 +39,7 @@ export class SessionStatsHandler {
     this.ensureLoaded();
     return this.lifecycle.unsubscribe(undefined, () =>
       this.dependencies.send({
-        type: WSMessageType.UNSUBSCRIBE_SESSION,
+        type: 'unsubscribe_session',
         id: generateID(),
       }),
     );
