@@ -15,6 +15,7 @@ import '@xyflow/react/dist/style.css';
 import CustomNode from '../nodes/CustomNode';
 import GraphLegend from './GraphLegend';
 import FitGraphOnLoad from './utils/FitGraphOnLoad';
+import FocusSelectedNode from './utils/FocusSelectedNode';
 import { useMinimapNavigation } from '../../hooks/layout/useMinimapNavigation';
 import { getImmediateGraphColor } from '../../hooks/layout/useGraphColors';
 import { useAppDispatch } from '@/shared/hooks/redux';
@@ -83,6 +84,7 @@ const GraphFlow: React.FC<GraphFlowProps> = ({
         selectionKeyCode={null}
       >
         <FitGraphOnLoad nodeCount={nodes.length} disabled={isResizing} />
+        <FocusSelectedNode />
         <Background color="#4b5563" gap={16} />
         <MiniMap
           nodeColor={(node) => getImmediateGraphColor(node)}

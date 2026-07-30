@@ -11,7 +11,11 @@ import { useStatsCalculations } from '../hooks/stats/useStatsCalculations';
 import { useEnrichedFilters } from '../hooks/stats/useEnrichedFilters';
 import { useMonitoredFilters, useFilterHandlers } from '../hooks/filters';
 import { useAppSelector, useAppDispatch } from '@/shared/hooks/redux';
-import { clearPendingFilterOpen } from '@/shared/store/slices/graphSlice';
+import {
+  clearPendingFilterOpen,
+  clearSelectedNode,
+  setSelectedNode,
+} from '@/shared/store/slices/graphSlice';
 import WidgetWrapper from '@/components/widget/WidgetWrapper';
 import ConnectionErrorState from '@/components/common/ConnectionErrorState';
 import { WidgetProps } from '@/types/ui/widget';
@@ -63,13 +67,26 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
       filtersWithSessionStats,
     );
 
+    const handleTabChange = useCallback(
+      (value: string) => {
+        setActiveTab(value);
+        const filterIdx = getFilterIdxFromTab(value);
+        if (filterIdx !== null) {
+          dispatch(setSelectedNode(String(filterIdx)));
+        } else {
+          dispatch(clearSelectedNode());
+        }
+      },
+      [dispatch],
+    );
+
     // User Actions
     const {
       handleCardClick,
       handleDetachTab,
       handleCloseTab,
       handleOpenProperties,
-    } = useFilterHandlers(setActiveTab);
+    } = useFilterHandlers(handleTabChange);
 
     // Listen for pending filter open requests from NodeToolbar
     const pendingFilterOpen = useAppSelector(
@@ -87,9 +104,9 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
     useEffect(() => {
       const currentIdx = getFilterIdxFromTab(activeTab);
       if (currentIdx !== null && !inlineFilterMap.has(currentIdx)) {
-        setActiveTab('main');
+        handleTabChange('main');
       }
-    }, [activeTab, inlineFilterMap]);
+    }, [activeTab, inlineFilterMap, handleTabChange]);
 
     // Auto-scroll to bottom when widget is detached
     useEffect(() => {
@@ -107,7 +124,7 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
     // Disable callbacks during resize to avoid expensive re-renders
     const noopTabChange = useCallback(() => {}, []);
     const noopCardClick = useCallback(() => {}, []);
-    const safeOnTabChange = isResizing ? noopTabChange : setActiveTab;
+    const safeOnTabChange = isResizing ? noopTabChange : handleTabChange;
     const safeOnCardClick = isResizing ? noopCardClick : handleCardClick;
 
     // Detached Mode (Overlay Widget)
@@ -176,7 +193,7 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
           >
             <StatsTabs
               activeTab={activeTab}
-              onValueChange={setActiveTab}
+              onValueChange={safeOnTabChange}
               allFilters={filtersWithSessionStats}
               onCloseTab={handleCloseTab}
               onDetachTab={handleDetachTab}

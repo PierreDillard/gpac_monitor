@@ -66,11 +66,14 @@ function gpac_filter_to_minimal_object(f) {
         opid: []
     };
 
+    const hasSourceOpidIdx = typeof f.ipid_source_opid_idx === 'function';
+
     for (let i = 0; i < f.nb_ipid; i++) {
         minimalFilters.ipid.push({
             pid_index: i,
             name: f.ipid_props(i, "name"),
             source_idx: f.ipid_source(i).idx,
+            source_opid_idx: hasSourceOpidIdx ? f.ipid_source_opid_idx(i) : -1,
             stream_type: f.ipid_props(i, "StreamType"),
             ID: f.ipid_props(i, "ID")
         });
@@ -88,27 +91,7 @@ function gpac_filter_to_minimal_object(f) {
 }
 
 
-function filter_pid_stats_object(f) {
-    const pidsFilters = {
-        idx: f.idx,
-        name: f.name,
-        ipid: {},
-        opid: {}
-    };
 
-    for (let i = 0; i < f.nb_ipid; i++) {
-        const pidName = f.ipid_props(i, "name");
-        pidsFilters.ipid[pidName] = {
-            source_idx: f.ipid_source(i).idx,
-        };
-    }
-    for (let o = 0; o < f.nb_opid; o++) {
-        const pidName = f.opid_props(o, "name");
-        pidsFilters.opid[pidName] = {};
-    }
-
-    return pidsFilters;
-}
 
 function on_all_connected(cb) {
     session.post_task(() => {

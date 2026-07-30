@@ -53,3 +53,6 @@ export const selectPidReconfiguredCounts = (state: RootState) =>
 
 export const selectArgUpdatedCounts = (state: RootState) =>
   state.graph.argUpdatedCounts;
+
+export const selectSelectedNodeId = (state: RootState) =>
+  state.graph.selectedNodeId;
