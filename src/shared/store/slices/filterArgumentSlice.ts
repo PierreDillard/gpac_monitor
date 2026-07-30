@@ -5,11 +5,12 @@ import type {
   GpacArgument,
   GpacArgumentValue,
 } from '@/types/domain/gpac/gpac_args';
+import type { RootState } from '@/shared/store';
 
 export interface ArgumentUpdate {
   filterId: string;
   name: string;
-  value: any;
+  value: GpacArgumentValue;
   status: 'idle' | 'pending' | 'success' | 'error';
   error?: string;
 }
@@ -97,20 +98,30 @@ export const {
 
 // Thunk
 
-export const updateFilterArgument = createAsyncThunk(
+export const updateFilterArgument = createAsyncThunk<
+  void,
+  { filterId: string; argName: string; argValue: GpacArgumentValue },
+  { state: RootState }
+>(
   'filterArgument/updateFilterArgument',
-  async (
-    {
-      filterId,
-      argName,
-      argValue,
-    }: { filterId: string; argName: string; argValue: any },
-    { dispatch, getState },
-  ) => {
-    const filterName = selectFilterNameById(getState() as any, filterId);
+  async ({ filterId, argName, argValue }, { dispatch, getState }) => {
+    const filterName = selectFilterNameById(getState(), filterId);
 
     if (!filterName) {
       throw new Error(`Filter with ID ${filterId} not found`);
+    }
+
+    if (
+      typeof argValue !== 'string' &&
+      typeof argValue !== 'number' &&
+      typeof argValue !== 'boolean' &&
+      argValue !== null
+    ) {
+      console.warn(
+        `[updateFilterArgument] Unsupported value type for ${argName}, skipping update:`,
+        argValue,
+      );
+      return;
     }
 
     // Send update to GPAC

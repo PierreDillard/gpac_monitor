@@ -125,7 +125,7 @@ export const createLineChartConfig = ({
         values: (_u: uPlot, vals: number[]) =>
           vals.map((v) => leftFmt(v as number)),
       },
-      ...(hasRightAxis
+      ...(hasRightAxis && rightAxis
         ? [
             {
               scale: 'right',
@@ -134,9 +134,9 @@ export const createLineChartConfig = ({
               grid: { show: false },
               ticks: { stroke: rightColor, size: 5, width: 1 },
               font: '10px monospace',
-              size: rightAxis?.size ?? 70,
+              size: rightAxis.size ?? 70,
               values: (_u: uPlot, vals: number[]) =>
-                vals.map((v) => rightAxis!.formatY(v as number)),
+                vals.map((v) => rightAxis.formatY(v as number)),
             },
           ]
         : []),

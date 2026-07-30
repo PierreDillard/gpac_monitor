@@ -163,7 +163,12 @@ function toProgressBar(entry: StatusNum): ProgressBar {
 }
 
 function toBufferMetric(entry: StatusNum): BufferMetric {
-  const { num, den } = entry.fraction!;
+  if (!entry.fraction) {
+    throw new Error(
+      'toBufferMetric called on an entry without a fraction (isBufferEntry guarantees this)',
+    );
+  }
+  const { num, den } = entry.fraction;
   const percentage = den > 0 ? clampPercentage((num / den) * 100) : 0;
   return { key: 'buffer', current: num, max: den, unit: 'ms', percentage };
 }

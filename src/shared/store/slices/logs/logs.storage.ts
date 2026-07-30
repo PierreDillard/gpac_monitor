@@ -7,6 +7,14 @@ import { LogsState } from './logs.types';
 
 const STORAGE_KEY = 'gpac-logs-config';
 
+const createEmptyBuffers = (): Record<GpacLogTool, GpacLogEntry[]> => {
+  const buffers = {} as Record<GpacLogTool, GpacLogEntry[]>;
+  Object.values(GpacLogTool).forEach((tool) => {
+    buffers[tool] = [];
+  });
+  return buffers;
+};
+
 /** Initialize state from localStorage */
 export const getInitialLogsState = (): LogsState => {
   try {
@@ -15,11 +23,10 @@ export const getInitialLogsState = (): LogsState => {
 
     return {
       currentTool: config.currentTool || GpacLogTool.FILTER,
-      levelsByTool:
-        config.levelsByTool || ({} as Record<GpacLogTool, GpacLogLevel>),
+      levelsByTool: config.levelsByTool || {},
       defaultAllLevel: config.defaultAllLevel || GpacLogLevel.QUIET,
       visibleToolsFilter: config.visibleToolsFilter || [],
-      buffers: {} as Record<GpacLogTool, GpacLogEntry[]>,
+      buffers: createEmptyBuffers(),
       maxEntriesPerTool: 500,
       isSubscribed: false,
       highlightedLogId: null,
@@ -27,7 +34,7 @@ export const getInitialLogsState = (): LogsState => {
       viewMode: 'perTool' as const,
       timestampMode: 'relative' as const,
       lastSentConfig: {
-        levelsByTool: {} as Record<GpacLogTool, GpacLogLevel>,
+        levelsByTool: {},
         defaultAllLevel: null, // Indicates no config has been sent yet
       },
       alertsByFilterKey: {},
@@ -35,10 +42,10 @@ export const getInitialLogsState = (): LogsState => {
   } catch {
     return {
       currentTool: GpacLogTool.FILTER,
-      levelsByTool: {} as Record<GpacLogTool, GpacLogLevel>,
+      levelsByTool: {},
       defaultAllLevel: GpacLogLevel.QUIET,
       visibleToolsFilter: [],
-      buffers: {} as Record<GpacLogTool, GpacLogEntry[]>,
+      buffers: createEmptyBuffers(),
       maxEntriesPerTool: 500,
       isSubscribed: false,
       highlightedLogId: null,
@@ -46,7 +53,7 @@ export const getInitialLogsState = (): LogsState => {
       viewMode: 'perTool' as const,
       timestampMode: 'relative' as const,
       lastSentConfig: {
-        levelsByTool: {} as Record<GpacLogTool, GpacLogLevel>,
+        levelsByTool: {},
         defaultAllLevel: null,
       },
       alertsByFilterKey: {},

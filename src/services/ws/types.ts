@@ -11,6 +11,7 @@ import type { SessionFilterStatistics } from '@/types/domain/gpac/filter-stats';
 import type { CPUStats } from '@/types/domain/system';
 import type { FilterArgument } from '@/types/domain/gpac/gpac_args';
 import type { PidPropsMap } from '@/types/domain/gpac/pid_props';
+import type { MonitorIntervals } from '@/shared/store/slices/monitorConfigSlice';
 
 // Base interface for all responses
 interface BaseWSResponse {
@@ -18,26 +19,6 @@ interface BaseWSResponse {
   id: string;
   success: boolean;
   error?: string;
-}
-
-// Types of messages we send to the server
-export enum WSMessageType {
-  GET_ALL_FILTERS = 'get_all_filters',
-  FILTER_ARGS_DETAILS = 'filter_args_details',
-  STOP_FILTER_ARGS = 'stop_filter_args',
-  UPDATE_ARG = 'update_arg',
-  SUBSCRIBE_SESSION = 'subscribe_session',
-  UNSUBSCRIBE_SESSION = 'unsubscribe_session',
-  SUBSCRIBE_FILTER_STATS = 'subscribe_filter',
-  UNSUBSCRIBE_FILTER_STATS = 'unsubscribe_filter',
-  SUBSCRIBE_CPU_STATS = 'subscribe_cpu_stats',
-  UNSUBSCRIBE_CPU_STATS = 'unsubscribe_cpu_stats',
-  SUBSCRIBE_LOGS = 'subscribe_logs',
-  UNSUBSCRIBE_LOGS = 'unsubscribe_logs',
-  UPDATE_LOG_LEVEL = 'update_log_level',
-  GET_LOG_STATUS = 'get_log_status',
-  GET_PNG = 'get_png',
-  GET_COMMAND_LINE = 'get_command_line',
 }
 
 // Types of messages we receive from the server
@@ -105,7 +86,7 @@ export interface IpidPropsResponseMessage {
   message: 'ipid_props_response';
   filterIdx: number;
   ipidIdx: number;
-  properties: PidPropsMap;
+  properties: PidPropsMap & { error?: string };
 }
 
 export interface CommandLineResponseMessage {
@@ -115,6 +96,11 @@ export interface CommandLineResponseMessage {
 
 export interface SessionEndMessage {
   message: 'session_end';
+}
+
+export interface MonitorConfigMessage {
+  message: 'monitor_config';
+  intervals: MonitorIntervals;
 }
 
 export interface NotificationMessage {
@@ -170,4 +156,5 @@ export type IncomingWsMessage =
   | SessionEndMessage
   | NotificationMessage
   | FilterPidReconfiguredMessage
-  | FilterArgUpdatedMessage;
+  | FilterArgUpdatedMessage
+  | MonitorConfigMessage;

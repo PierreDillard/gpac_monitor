@@ -3,7 +3,10 @@
  * GPAC parses all arguments as strings internally, so we normalize
  * values to their string representation according to type
  */
-export function convertArgumentValue(value: any, type: string): string | null {
+export function convertArgumentValue(
+  value: unknown,
+  type: string,
+): string | null {
   if (value === null || value === undefined) return null;
 
   // Handle specific types - convert to string format expected by GPAC

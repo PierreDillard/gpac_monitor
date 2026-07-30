@@ -15,7 +15,7 @@ import { useSearchFilter } from '@/shared/hooks/filters/useSearchFilter';
 import { ToolRow } from './ToolRow';
 
 interface ToolSettingsDropdownProps {
-  levelsByTool: Record<GpacLogTool, GpacLogLevel>;
+  levelsByTool: Partial<Record<GpacLogTool, GpacLogLevel>>;
   defaultAllLevel: GpacLogLevel;
   currentTool: GpacLogTool;
   onToolLevelChange: (tool: GpacLogTool, level: GpacLogLevel) => void;

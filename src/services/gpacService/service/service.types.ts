@@ -1,5 +1,6 @@
 import { GpacTransport } from '../../ws/GpacTransport';
 import { ConnectionStatus } from '../../../types/communication/IgpacCommunication';
+import type { IncomingWsMessage } from '../../ws/types';
 import { GpacNotificationHandlers } from '../types';
 import { ConnectionManager } from '../infrastructure/connectionManager';
 import { BaseMessageHandler } from '../infrastructure/messageHandler/baseMessageHandler';
@@ -20,7 +21,7 @@ export interface GpacServiceState {
 
 /** Public callbacks for GpacService events */
 export interface GpacServiceCallbacks {
-  onMessage?: (message: any) => void;
+  onMessage?: (message: IncomingWsMessage) => void;
   onError?: (error: Error) => void;
   onDisconnect?: () => void;
   onConnectionStatusChange?: (status: ConnectionStatus) => void;
