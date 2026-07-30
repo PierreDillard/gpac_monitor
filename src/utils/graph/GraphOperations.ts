@@ -1,7 +1,6 @@
 import { FilterType, GraphFilterData } from '@/types/domain/gpac';
 import { Node, Edge, MarkerType } from '@xyflow/react';
 import { isSource } from './filterType';
-import { sourceOpidIndex } from './sourceOpidIndex';
 import {
   determineFilterType,
   getFilterColor,
@@ -108,11 +107,11 @@ export function createEdgesFromFilters(
       const filterColor = getFilterColor(filterType);
 
       const sourceFilter = filters.find((f) => f.idx === pid.source_idx);
-      const opidIndex = sourceFilter
-        ? sourceOpidIndex(sourceFilter, pid)
-        : undefined;
+      const opidIndex = pid.source_opid_idx ?? -1;
       const sourceHandle =
-        opidIndex !== undefined ? `opid-${opidIndex}` : undefined;
+        sourceFilter && opidIndex >= 0 && opidIndex < sourceFilter.opid.length
+          ? `opid-${opidIndex}`
+          : undefined;
 
       newEdges.push({
         id: edgeId,
