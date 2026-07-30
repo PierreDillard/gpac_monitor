@@ -101,6 +101,7 @@ export interface GraphInputPid {
   pid_index: number;
   name: string;
   source_idx: number;
+  source_opid_idx?: number;
   stream_type: GpacStreamType;
   ID: number;
 }
