@@ -7,59 +7,70 @@ import {
   STREAM_TYPE_TO_FILTER,
 } from '@/utils/filters/streamType';
 
+// Depth = longest upstream path to a source filter (memoized, cycle-safe)
+function computeFilterDepths(filters: GraphFilterData[]): Map<number, number> {
+  const filtersByIdx = new Map(filters.map((filter) => [filter.idx, filter]));
+  const depths = new Map<number, number>();
+  const visiting = new Set<number>();
+
+  const depthOf = (filter: GraphFilterData): number => {
+    const memoized = depths.get(filter.idx);
+    if (memoized !== undefined) return memoized;
+    if (visiting.has(filter.idx)) return 0;
+    if (isSource(filter)) {
+      depths.set(filter.idx, 0);
+      return 0;
+    }
+
+    visiting.add(filter.idx);
+    let maxSourceDepth = 0;
+    for (const pid of filter.ipid) {
+      const sourceFilter = filtersByIdx.get(pid.source_idx);
+      if (sourceFilter) {
+        maxSourceDepth = Math.max(maxSourceDepth, depthOf(sourceFilter));
+      }
+    }
+    visiting.delete(filter.idx);
+
+    const depth = maxSourceDepth + 1;
+    depths.set(filter.idx, depth);
+    return depth;
+  };
+
+  filters.forEach((filter) => depthOf(filter));
+  return depths;
+}
+
+// X position from topological rank, computed once per filter list
+function computeTopologicalXByIdx(
+  filters: GraphFilterData[],
+): Map<number, number> {
+  const depths = computeFilterDepths(filters);
+  const sortedFilters = [...filters].sort((filterA, filterB) => {
+    const depthDelta =
+      (depths.get(filterA.idx) ?? 0) - (depths.get(filterB.idx) ?? 0);
+    return depthDelta !== 0 ? depthDelta : filterA.idx - filterB.idx;
+  });
+
+  const xByIdx = new Map<number, number>();
+  sortedFilters.forEach((filter, sortedIndex) => {
+    xByIdx.set(filter.idx, 150 + sortedIndex * 300);
+  });
+  return xByIdx;
+}
+
 // Create a node from a filter object
 export function createNodeFromFilter(
   filter: GraphFilterData,
   index: number,
   existingNodes: Node[],
-  allFilters?: GraphFilterData[], // Add this parameter to calculate proper positioning
+  topologicalXByIdx?: Map<number, number>,
 ): Node {
   const existingNode = existingNodes.find(
-    (n) => n.id === filter.idx.toString(),
+    (node) => node.id === filter.idx.toString(),
   );
   const filterType = determineFilterType(filter);
-
-  // Calculate topological position if allFilters is provided
-  let topologicalX = 150 + index * 300; // Default fallback
-
-  if (allFilters) {
-    // Calculate dependency depth for proper ordering
-    const calculateDepth = (
-      currentFilter: GraphFilterData,
-      visited = new Set<number>(),
-    ): number => {
-      if (visited.has(currentFilter.idx)) return 0; // Avoid cycles
-      visited.add(currentFilter.idx);
-
-      // Source nodes (no inputs) are at depth 0
-      if (isSource(currentFilter)) return 0;
-
-      // Find maximum depth among all source dependencies
-      let maxDepth = 0;
-      currentFilter.ipid.forEach((pid) => {
-        const sourceFilter = allFilters.find((f) => f.idx === pid.source_idx);
-        if (sourceFilter && !visited.has(sourceFilter.idx)) {
-          const sourceDepth = calculateDepth(sourceFilter, new Set(visited));
-          maxDepth = Math.max(maxDepth, sourceDepth);
-        }
-      });
-
-      return maxDepth + 1;
-    };
-
-    // Sort filters by dependency depth for correct ordering
-    const sortedFilters = [...allFilters].sort((a, b) => {
-      const depthA = calculateDepth(a);
-      const depthB = calculateDepth(b);
-
-      if (depthA !== depthB) return depthA - depthB;
-      return a.idx - b.idx; // Stable sort by idx
-    });
-
-    // Find the position of current filter in sorted array
-    const sortedIndex = sortedFilters.findIndex((f) => f.idx === filter.idx);
-    topologicalX = 150 + sortedIndex * 300;
-  }
+  const topologicalX = topologicalXByIdx?.get(filter.idx) ?? 150 + index * 300;
 
   return {
     id: filter.idx.toString(),
@@ -141,7 +152,8 @@ export function createNodesFromFilters(
   filters: GraphFilterData[],
   existingNodes: Node[] = [],
 ): Node[] {
+  const topologicalXByIdx = computeTopologicalXByIdx(filters);
   return filters.map((filter, index) =>
-    createNodeFromFilter(filter, index, existingNodes, filters),
+    createNodeFromFilter(filter, index, existingNodes, topologicalXByIdx),
   );
 }
