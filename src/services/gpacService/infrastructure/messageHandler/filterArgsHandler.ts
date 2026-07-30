@@ -1,4 +1,4 @@
-import { WSMessageType, DetailsMessage } from '@/services/ws/types';
+import { DetailsMessage } from '@/services/ws/types';
 
 import { generateID } from '@/utils/core';
 import { MessageHandlerDependencies } from './types';
@@ -28,7 +28,7 @@ export class FilterArgsHandler {
     this.ensureLoaded();
     return this.lifecycle.subscribe(idx, () =>
       this.dependencies.send({
-        type: WSMessageType.FILTER_ARGS_DETAILS,
+        type: 'filter_args_details',
         id: generateID(),
         idx,
       }),
@@ -52,7 +52,7 @@ export class FilterArgsHandler {
     idx: number,
     name: string,
     argName: string,
-    newValue: string | number | boolean,
+    newValue: string | number | boolean | null,
   ): Promise<void> {
     this.ensureLoaded();
 
@@ -62,7 +62,7 @@ export class FilterArgsHandler {
       );
 
       await this.dependencies.send({
-        type: WSMessageType.UPDATE_ARG,
+        type: 'update_arg',
         id: generateID(),
         idx,
         name,
@@ -105,8 +105,11 @@ export class FilterArgsHandler {
       subscribable = new UpdatableSubscribable<FilterArgument[]>([]);
       this.filterArgsSubscribables.set(filterIdx, subscribable);
     }
+    const activeSubscribable = subscribable;
 
-    const unsubscribe = subscribable.subscribe(callback, { immediate: false });
+    const unsubscribe = activeSubscribable.subscribe(callback, {
+      immediate: false,
+    });
 
     if (isFirstSubscriber) {
       this.subscribeToFilterArgs(filterIdx);
@@ -114,7 +117,7 @@ export class FilterArgsHandler {
 
     return () => {
       unsubscribe();
-      if (!subscribable!.hasSubscribers) {
+      if (!activeSubscribable.hasSubscribers) {
         this.filterArgsSubscribables.delete(filterIdx);
       }
     };

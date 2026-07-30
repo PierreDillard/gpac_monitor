@@ -26,7 +26,7 @@ export const configReducers = {
     state.defaultAllLevel = newDefaultLevel;
 
     // Reset all tool-specific levels - all tools inherit from 'all' level
-    state.levelsByTool = {} as Record<GpacLogTool, GpacLogLevel>;
+    state.levelsByTool = {};
   },
 
   /** Toggle tool visibility in "all" mode */
@@ -82,7 +82,7 @@ export const configReducers = {
     }
     if (levelsByTool) {
       state.levelsByTool = replace
-        ? (levelsByTool as Record<GpacLogTool, GpacLogLevel>)
+        ? levelsByTool
         : { ...state.levelsByTool, ...levelsByTool };
     }
     if (defaultAllLevel) {

@@ -1,6 +1,5 @@
 import { UpdatableSubscribable } from '@/services/utils/UpdatableSubcribable';
 import { SubscriptionLifecycle } from '@/services/utils/SubscriptionLifecycle';
-import { WSMessageType } from '@/services/ws/types';
 import {
   GpacLogEntry,
   LogManagerStatus,
@@ -40,7 +39,7 @@ export class LogHandler {
     if (this.isSubscribed) return this.updateLogLevel(logLevel);
     return this.lifecycle.subscribe(undefined, async () => {
       await this.dependencies.send({
-        type: WSMessageType.SUBSCRIBE_LOGS,
+        type: 'subscribe_logs',
         id: generateID(),
         logLevel,
       });
@@ -53,7 +52,7 @@ export class LogHandler {
     this.ensureLoaded();
     return this.lifecycle.unsubscribe(undefined, async () => {
       await this.dependencies.send({
-        type: WSMessageType.UNSUBSCRIBE_LOGS,
+        type: 'unsubscribe_logs',
         id: generateID(),
       });
       this.isSubscribed = false;
@@ -64,7 +63,7 @@ export class LogHandler {
   public async updateLogLevel(logLevel: GpacLogConfigString): Promise<void> {
     this.ensureLoaded();
     await this.dependencies.send({
-      type: WSMessageType.UPDATE_LOG_LEVEL,
+      type: 'update_log_level',
       id: generateID(),
       logLevel,
     });

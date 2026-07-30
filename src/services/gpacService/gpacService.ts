@@ -6,6 +6,7 @@ import {
   ConnectionStatus,
 } from '../../types/communication/IgpacCommunication';
 import { IGpacMessageHandler } from '../../types/communication/IGpacMessageHandler';
+import type { IncomingWsMessage } from '../ws/types';
 import { GpacNotificationHandlers } from './types';
 import { ConnectionManager } from './infrastructure/connectionManager';
 import { BaseMessageHandler } from './infrastructure/messageHandler/baseMessageHandler';
@@ -56,16 +57,16 @@ export class GpacService implements IGpacCommunication {
 
     const dependencies = {
       isConnected: () => this.isConnected(),
-      send: (message: any) => this.send(message),
+      send: (message: GpacMessage) => this.send(message),
       stopReconnection: () => connectionManager.stopReconnection(),
       markEndOfSession: () => connectionManager.markEndOfSession(),
     };
 
     const messageHandler = new BaseMessageHandler(
-      {} as GpacNotificationHandlers,
+      {},
       storeCallbacks,
       dependencies,
-      (message: any) => {
+      (message: IncomingWsMessage) => {
         coreService.notifyHandlers(message);
       },
     );
@@ -193,7 +194,7 @@ export class GpacService implements IGpacCommunication {
     idx: number,
     name: string,
     argName: string,
-    newValue: string | number | boolean,
+    newValue: string | number | boolean | null,
   ): Promise<void> {
     return filterMethods.updateFilterArg(
       this.state,

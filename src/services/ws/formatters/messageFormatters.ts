@@ -3,7 +3,7 @@ export class MessageFormatter {
     return message.startsWith('json:') ? message : `json:${message}`;
   }
 
-  static parseReceived(data: string): any {
+  static parseReceived(data: string): unknown {
     if (data.startsWith('json:')) {
       return JSON.parse(data.substring(5));
     }
@@ -13,7 +13,7 @@ export class MessageFormatter {
     return data;
   }
 
-  static createDataView(data: any): DataView {
+  static createDataView(data: unknown): DataView {
     const textEncoder = new TextEncoder();
     const encoded = textEncoder.encode(JSON.stringify(data));
     return new DataView(encoded.buffer);

@@ -19,12 +19,12 @@ const DEFAULT_CONNECTION: GpacConnectionConfig = {
 const connectionsArrayToById = (
   connections: GpacConnectionConfig[],
 ): Record<string, GpacConnectionConfig> => {
-  return connections.reduce(
+  return connections.reduce<Record<string, GpacConnectionConfig>>(
     (acc, conn) => {
       acc[conn.id] = conn;
       return acc;
     },
-    {} as Record<string, GpacConnectionConfig>,
+    {},
   );
 };
 

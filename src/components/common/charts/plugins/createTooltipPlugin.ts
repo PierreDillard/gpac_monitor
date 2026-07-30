@@ -39,8 +39,8 @@ export function createTooltipPlugin(
           const rootRect = u.root.getBoundingClientRect();
           const ox = overRect.left - rootRect.left;
           const oy = overRect.top - rootRect.top;
-          const computeLeft = (cursorLeft: number) => {
-            const tooltipWidth = tooltipEl!.offsetWidth;
+          const computeLeft = (cursorLeft: number, tooltip: HTMLDivElement) => {
+            const tooltipWidth = tooltip.offsetWidth;
             const rootWidth = u.root.clientWidth;
             const rightOf = ox + cursorLeft + 10;
             const leftOf = ox + cursorLeft - tooltipWidth - 10;
@@ -49,7 +49,7 @@ export function createTooltipPlugin(
           };
 
           if (lastIdx === idx) {
-            tooltipEl.style.left = `${computeLeft(left)}px`;
+            tooltipEl.style.left = `${computeLeft(left, tooltipEl)}px`;
             tooltipEl.style.top = `${oy + top + 1}px`;
             return;
           }
@@ -72,7 +72,7 @@ export function createTooltipPlugin(
             .join('');
           tooltipEl.innerHTML = `<div style="margin-bottom:4px;color:#6ee7b7">time = ${time}</div>${rows}`;
           tooltipEl.style.display = 'block';
-          tooltipEl.style.left = `${computeLeft(left)}px`;
+          tooltipEl.style.left = `${computeLeft(left, tooltipEl)}px`;
           tooltipEl.style.top = `${oy + top + 10}px`;
         },
       ],
