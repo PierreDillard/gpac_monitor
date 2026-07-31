@@ -22,7 +22,7 @@ function CpuStatsManager(client) {
 
     this.tick = function(now) {
         if (!this.isSubscribed) return;
-        if (now - this.lastSent < this.interval) return;
+        if (now - this.lastSent < this.interval * 1000) return;
 
         // Cache serialized data (50ms TTL) to avoid redundant JSON.stringify for concurrent clients
         const serialized = cacheManager.getOrSet('cpu_stats', 50, () => {

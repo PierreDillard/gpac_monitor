@@ -57,7 +57,7 @@ function SessionStatsManager(client) {
      */
     this.tick = function(now) {
         if (!this.isSubscribed) return;
-        if (now - this.lastSent < this.interval) return;
+        if (now - this.lastSent < this.interval * 1000) return;
         this.lastSent = now;
 
         // Use cache to avoid redundant serialization for multiple clients
