@@ -45,7 +45,6 @@ type FilterPerfPrev = { tsUs: number; bytesSent: number; bytesDone: number };
 
 export const createStoreCallbacks = (): MessageHandlerCallbacks => {
   const filterPrevPerf = new Map<number, FilterPerfPrev>();
-  const prevRawStatusByFilter = new Map<number, string>();
 
   return {
     onUpdateGraphData: (data) => {
@@ -149,19 +148,15 @@ export const createStoreCallbacks = (): MessageHandlerCallbacks => {
     onSetMonitorConfig: (intervals) =>
       store.dispatch(setMonitorConfig(intervals)),
     onFilterStatuses: (entries) => {
-      const changedEntries = entries.filter((entry) => {
-        const raw = entry.status ?? '';
-        const isUnchanged = prevRawStatusByFilter.get(entry.idx) === raw;
-        prevRawStatusByFilter.set(entry.idx, raw);
-        return !isUnchanged;
-      });
+      const state = store.getState();
+      const changedEntries = entries.filter(
+        (entry) =>
+          selectParsedStatus(state, entry.idx).raw !== (entry.status ?? ''),
+      );
       if (changedEntries.length === 0) return;
       store.dispatch(
         setParsedStatuses(
-          extractParsedStatuses(
-            changedEntries,
-            selectMetricDefinitions(store.getState()),
-          ),
+          extractParsedStatuses(changedEntries, selectMetricDefinitions(state)),
         ),
       );
     },
