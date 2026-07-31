@@ -310,6 +310,44 @@ describe('createStoreCallbacks (liveAdapter storeIntegration)', () => {
       expect(entries[0].parsedStatus.raw).toBe('seg=3');
     });
 
+    it('onFilterStatuses skips re-parsing and does not dispatch when the raw status is unchanged', () => {
+      const callbacks = createStoreCallbacks();
+      callbacks.onFilterStatuses([{ idx: 5, status: 'seg=3' }]);
+      dispatchSpy.mockClear();
+
+      callbacks.onFilterStatuses([{ idx: 5, status: 'seg=3' }]);
+
+      const calls = actionsOfType(
+        dispatchSpy.mock.calls,
+        'monitoredFilter/setParsedStatuses',
+      );
+      expect(calls).toHaveLength(0);
+    });
+
+    it('onFilterStatuses dispatches only the entries whose raw status changed', () => {
+      const callbacks = createStoreCallbacks();
+      callbacks.onFilterStatuses([
+        { idx: 5, status: 'seg=3' },
+        { idx: 6, status: '' },
+      ]);
+      dispatchSpy.mockClear();
+
+      callbacks.onFilterStatuses([
+        { idx: 5, status: 'seg=4' },
+        { idx: 6, status: '' },
+      ]);
+
+      const calls = actionsOfType(
+        dispatchSpy.mock.calls,
+        'monitoredFilter/setParsedStatuses',
+      );
+      expect(calls).toHaveLength(1);
+      const entries = (calls[0][0] as any).payload;
+      expect(entries).toHaveLength(1);
+      expect(entries[0].filterIdx).toBe(5);
+      expect(entries[0].parsedStatus.raw).toBe('seg=4');
+    });
+
     it('onLogsUpdate dispatches logs/appendLogsForAllTools with the given entries', () => {
       const callbacks = createStoreCallbacks();
       const logs: GpacLogEntry[] = [
