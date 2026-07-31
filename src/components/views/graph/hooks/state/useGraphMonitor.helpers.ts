@@ -30,7 +30,6 @@ export function updateEdgesWithState(
       return {
         ...edge,
         selected: existingEdge.selected,
-        animated: existingEdge.animated,
       };
     }
     return edge;

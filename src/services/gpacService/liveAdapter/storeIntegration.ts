@@ -147,14 +147,18 @@ export const createStoreCallbacks = (): MessageHandlerCallbacks => {
       store.dispatch(setMetricDefinitions(definitions)),
     onSetMonitorConfig: (intervals) =>
       store.dispatch(setMonitorConfig(intervals)),
-    onFilterStatuses: (entries) =>
+    onFilterStatuses: (entries) => {
+      const state = store.getState();
+      const changedEntries = entries.filter(
+        (entry) =>
+          selectParsedStatus(state, entry.idx).raw !== (entry.status ?? ''),
+      );
+      if (changedEntries.length === 0) return;
       store.dispatch(
         setParsedStatuses(
-          extractParsedStatuses(
-            entries,
-            selectMetricDefinitions(store.getState()),
-          ),
+          extractParsedStatuses(changedEntries, selectMetricDefinitions(state)),
         ),
-      ),
+      );
+    },
   };
 };

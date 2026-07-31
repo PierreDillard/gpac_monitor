@@ -74,7 +74,6 @@ const GraphFlow: React.FC<GraphFlowProps> = ({
         maxZoom={2}
         defaultEdgeOptions={{
           type: 'simplebezier',
-          animated: false,
           style: { stroke: '#6b7280', strokeWidth: 3 },
           ariaLabel: 'Clickable edge to see IPID properties',
           interactionWidth: 20,

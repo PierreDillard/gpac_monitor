@@ -65,7 +65,7 @@ function FilterManager(client) {
             const sub = this.filterSubscriptions[idxStr];
             const lastSent = this.lastSentByFilter[idxStr] || 0;
 
-            if (now - lastSent < sub.interval) continue;
+            if (now - lastSent < sub.interval * 1000) continue;
 
             const cacheKey = `filter_stats_${idx}`;
             const serialized = cacheManager.getOrSet(cacheKey, 50, () => {
