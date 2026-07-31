@@ -14,11 +14,13 @@ function SessionStatsManager(client) {
     this.interval = UPDATE_INTERVALS.SESSION_STATS;
     this.fields = [];
     this.lastSentMetrics = '';
+    this.lastSent = 0;
 
     this.subscribe = function(interval, fields) {
         this.isSubscribed = true;
         this.interval = interval || UPDATE_INTERVALS.SESSION_STATS;
         this.fields = fields || DEFAULT_FILTER_FIELDS;
+        this.lastSent = 0;
     };
 
     this.unsubscribe = function() {
@@ -55,6 +57,8 @@ function SessionStatsManager(client) {
      */
     this.tick = function(now) {
         if (!this.isSubscribed) return;
+        if (now - this.lastSent < this.interval) return;
+        this.lastSent = now;
 
         // Use cache to avoid redundant serialization for multiple clients
         const serialized = cacheManager.getOrSet('session_stats', 50, () => {
