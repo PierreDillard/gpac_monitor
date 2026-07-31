@@ -136,7 +136,6 @@ export function createEdgesFromFilters(
           sourceFilterIdx: pid.source_idx,
           targetFilterIdx: filter.idx,
         },
-        animated: true,
         style: { stroke: filterColor, strokeWidth: 3, opacity: 0.9 },
         markerEnd: { type: MarkerType.ArrowClosed, color: filterColor },
         selected: existingEdge?.selected,
