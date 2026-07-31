@@ -63,12 +63,10 @@ function computeTopologicalXByIdx(
 export function createNodeFromFilter(
   filter: GraphFilterData,
   index: number,
-  existingNodes: Node[],
+  existingNodesById: Map<string, Node>,
   topologicalXByIdx?: Map<number, number>,
 ): Node {
-  const existingNode = existingNodes.find(
-    (node) => node.id === filter.idx.toString(),
-  );
+  const existingNode = existingNodesById.get(filter.idx.toString());
   const filterType = determineFilterType(filter);
   const topologicalX = topologicalXByIdx?.get(filter.idx) ?? 150 + index * 300;
 
@@ -107,17 +105,21 @@ export function createEdgesFromFilters(
   existingEdges: Edge[],
 ): Edge[] {
   const newEdges: Edge[] = [];
+  const filtersByIdx = new Map(filters.map((filter) => [filter.idx, filter]));
+  const existingEdgesById = new Map(
+    existingEdges.map((edge) => [edge.id, edge]),
+  );
 
   filters.forEach((filter) => {
     filter.ipid.forEach((pid) => {
       const edgeId = `edge:${pid.source_idx}->${filter.idx}:ipid:${pid.pid_index}`;
-      const existingEdge = existingEdges.find((e) => e.id === edgeId);
+      const existingEdge = existingEdgesById.get(edgeId);
 
       const filterType: FilterType =
         STREAM_TYPE_TO_FILTER[pid.stream_type] ?? 'file';
       const filterColor = getFilterColor(filterType);
 
-      const sourceFilter = filters.find((f) => f.idx === pid.source_idx);
+      const sourceFilter = filtersByIdx.get(pid.source_idx);
       const opidIndex = pid.source_opid_idx ?? -1;
       const sourceHandle =
         sourceFilter && opidIndex >= 0 && opidIndex < sourceFilter.opid.length
@@ -152,7 +154,10 @@ export function createNodesFromFilters(
   existingNodes: Node[] = [],
 ): Node[] {
   const topologicalXByIdx = computeTopologicalXByIdx(filters);
+  const existingNodesById = new Map(
+    existingNodes.map((node) => [node.id, node]),
+  );
   return filters.map((filter, index) =>
-    createNodeFromFilter(filter, index, existingNodes, topologicalXByIdx),
+    createNodeFromFilter(filter, index, existingNodesById, topologicalXByIdx),
   );
 }
