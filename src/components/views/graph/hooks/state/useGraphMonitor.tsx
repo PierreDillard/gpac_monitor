@@ -18,6 +18,10 @@ import {
   requestFilterOpen,
 } from '@/shared/store/slices/graphSlice';
 import { selectAllFilterAlerts } from '@/shared/store/selectors/header/headerSelectors';
+import {
+  annotateNodesStable,
+  NodeAnnotationCache,
+} from '../../utils/nodeAnnotation';
 
 // Modularized hooks
 import { useGraphLayout } from '../layout/useGraphLayout';
@@ -37,6 +41,7 @@ const useGraphMonitor = () => {
   const nodesRef = useRef<Node[]>([]);
   const edgesRef = useRef<Edge[]>([]);
   const isApplyingLayout = useRef(false);
+  const nodeAnnotationCache = useRef<NodeAnnotationCache>(new Map());
 
   // Local state for nodes and edges with React Flow's state management
   const [localNodes, setLocalNodes, onNodesChange] = useNodesState<Node>([]);
@@ -131,22 +136,12 @@ const useGraphMonitor = () => {
   // Annotate nodes with isMonitored + alerts properties
   const annotatedNodes = useMemo(
     () =>
-      localNodes.map((node) => {
-        const filterIdx = node.data?.idx as number | undefined;
-        const isMonitored =
-          typeof filterIdx === 'number' && subscribedSet.has(filterIdx);
-        const alerts =
-          filterIdx !== undefined ? allAlerts[String(filterIdx)] || null : null;
-
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            isMonitored,
-            alerts,
-          },
-        };
-      }),
+      annotateNodesStable(
+        nodeAnnotationCache.current,
+        localNodes,
+        subscribedSet,
+        allAlerts,
+      ),
     [localNodes, subscribedSet, allAlerts],
   );
 
