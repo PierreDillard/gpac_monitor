@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && esbuild server/server.js --bundle --outfile=release/server.js --format=esm --external:gpaccore --external:std --external:os && cp -f dist/index.html release/index.html",
+    "preview": "vite preview --outDir release --port 4173",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "typecheck": "tsc --noEmit",
