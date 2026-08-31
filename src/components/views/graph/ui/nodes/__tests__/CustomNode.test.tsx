@@ -63,3 +63,12 @@ describe('CustomNode null-safety', () => {
     ).not.toThrow();
   });
 });
+
+describe('CustomNode layering', () => {
+  it('uses an opaque mixed background to keep edges behind the node', () => {
+    const { container } = renderCustomNode(baseData);
+    const nodeContainer = container.querySelector('.border-2');
+
+    expect(nodeContainer?.style.backgroundColor).toContain('color-mix');
+  });
+});

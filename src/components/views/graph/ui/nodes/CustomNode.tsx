@@ -98,7 +98,7 @@ const CustomNodeBase: React.FC<CustomNodeProps> = ({
   const containerStyle = useMemo(
     () => ({
       borderColor: backgroundColor,
-      backgroundColor: backgroundColor + '40',
+      backgroundColor: `color-mix(in srgb, ${backgroundColor} 50%, #101722)`,
       borderWidth: '2px',
     }),
     [backgroundColor],
