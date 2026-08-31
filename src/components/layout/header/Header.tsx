@@ -8,6 +8,7 @@ import {
   LuRotateCw,
 } from 'react-icons/lu';
 import { LayoutManager } from '../header/LayoutManager';
+import BuildVersion from './BuildVersion';
 import WidgetSelector from '../../widget/WidgetSelector';
 import ConnectionSelector from '../connection/ConnectionSelector';
 import LogCounters from './LogCounters';
@@ -58,9 +59,12 @@ const Header = () => {
     >
       <div className="h-full flex items-center justify-between gap-4">
         <div className="flex items-center gap-6 min-w-0 flex-1">
-          <h1 className="text-xl font-semibold font-ui text-gray-200 shrink-0">
-            GPAC Monitor
-          </h1>
+          <div className="flex flex-col shrink-0">
+            <h1 className="text-xl font-semibold font-ui text-gray-200">
+              GPAC Monitor
+            </h1>
+            <BuildVersion />
+          </div>
 
           <div className="h-6 w-px bg-gray-700 shrink-0" />
 
