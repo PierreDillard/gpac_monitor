@@ -21,10 +21,8 @@ import {
   addCombinedNetworkPoint,
 } from '@/shared/store/slices/monitoredFilterSlice';
 import { selectMetricDefinitions } from '@/shared/store/selectors';
-import {
-  buildStatusSamplesFromStats,
-  buildStatusSamplesFromParsed,
-} from '@/utils/metrics/statusMetricGraph';
+import { buildStatusSamplesFromParsed } from '@/utils/metrics/statusMetricGraph';
+import type { ParsedFilterStatus } from '@/utils/metrics/filterStatusParser';
 import { buildPIDSamplesFromFilterStats } from '@/utils/metrics/pidMetricGraph';
 import {
   buildPerfSamplesFromStats,
@@ -55,11 +53,13 @@ export const createStoreCallbacks = (): MessageHandlerCallbacks => {
       const prevTsUs = selectLastUpdateUs(store.getState());
       store.dispatch(updateSessionStats(payload));
       const state = store.getState();
-      const samples = buildStatusSamplesFromStats(
-        payload.stats ?? [],
+      const parsedStatuses: Record<number, ParsedFilterStatus> = {};
+      for (const stat of payload.stats ?? [])
+        parsedStatuses[stat.idx] = selectParsedStatus(state, stat.idx);
+      const samples = buildStatusSamplesFromParsed(
+        parsedStatuses,
         payload.ts_us,
         selectSessionStartUs(state),
-        selectMetricDefinitions(state),
       );
       if (samples.length > 0) store.dispatch(addStatusMetricSamples(samples));
       const perfSamples = buildPerfSamplesFromStats(

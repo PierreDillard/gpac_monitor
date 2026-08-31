@@ -7,13 +7,24 @@ export const useContainerSize = (ref: RefObject<HTMLElement>) => {
     const el = ref.current;
     if (!el) return;
 
-    const update = () => {
-      const { width, height } = el.getBoundingClientRect();
-      setSize({ width: width || 400, height: height || 160 });
+    const applySize = (width: number, height: number) => {
+      const nextWidth = width || 400;
+      const nextHeight = height || 160;
+      setSize((previousSize) =>
+        previousSize.width === nextWidth && previousSize.height === nextHeight
+          ? previousSize
+          : { width: nextWidth, height: nextHeight },
+      );
     };
 
-    update();
-    const observer = new ResizeObserver(update);
+    const initialRect = el.getBoundingClientRect();
+    applySize(initialRect.width, initialRect.height);
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      applySize(entry.contentRect.width, entry.contentRect.height);
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, [ref]);

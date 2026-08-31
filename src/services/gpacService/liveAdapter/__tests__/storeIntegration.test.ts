@@ -144,6 +144,14 @@ describe('createStoreCallbacks (liveAdapter storeIntegration)', () => {
 
     it('derives graphable status samples with sessionTimeUs = 0 on the first event', () => {
       const callbacks = createStoreCallbacks();
+      // Mirrors handleSessionStatsMessage (baseMessageHandler.ts): onFilterStatuses
+      // always runs first, synchronously, on the same payload.
+      callbacks.onFilterStatuses(
+        sessionStatsPayload1.stats.map((stat) => ({
+          idx: stat.idx,
+          status: stat.status,
+        })),
+      );
       callbacks.onUpdateSessionStats(sessionStatsPayload1);
 
       const statusCalls = actionsOfType(
