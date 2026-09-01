@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useReactFlow, useViewport } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
 
 /**
  *
@@ -7,8 +7,7 @@ import { useReactFlow, useViewport } from '@xyflow/react';
  *
  */
 export const useMinimapNavigation = () => {
-  const { setViewport } = useReactFlow();
-  const { zoom } = useViewport();
+  const { setViewport, getZoom } = useReactFlow();
 
   const handleMiniMapClick = useCallback(
     (
@@ -32,12 +31,12 @@ export const useMinimapNavigation = () => {
         {
           x: newX,
           y: newY,
-          zoom,
+          zoom: getZoom(),
         },
         { duration: 200 }, // Smooth transition
       );
     },
-    [setViewport, zoom],
+    [setViewport, getZoom],
   );
 
   const handleMiniMapDrag = useCallback(
@@ -61,12 +60,12 @@ export const useMinimapNavigation = () => {
         {
           x: newX,
           y: newY,
-          zoom,
+          zoom: getZoom(),
         },
         { duration: 0 }, // No animation for drag
       );
     },
-    [setViewport, zoom],
+    [setViewport, getZoom],
   );
 
   return {
