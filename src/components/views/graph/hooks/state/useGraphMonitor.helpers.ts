@@ -22,16 +22,21 @@ export function updateNodesWithPositions(
 export function updateEdgesWithState(
   newEdges: Edge[],
   edgesRef: React.MutableRefObject<Edge[]>,
+  selectedNodeId: string | null,
 ) {
   const existingById = new Map(edgesRef.current.map((edge) => [edge.id, edge]));
   return newEdges.map((edge) => {
+    const isIncidentToSelection =
+      selectedNodeId !== null &&
+      (edge.source === selectedNodeId || edge.target === selectedNodeId);
     const existingEdge = existingById.get(edge.id);
     if (existingEdge) {
       return {
         ...edge,
         selected: existingEdge.selected,
+        animated: isIncidentToSelection,
       };
     }
-    return edge;
+    return { ...edge, animated: isIncidentToSelection };
   });
 }
