@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { useGraphHandlers } from '../interaction/useGraphHandlers';
+import { updateNodesWithPositions } from '../state/useGraphMonitor.helpers';
 import { MutableRefObject } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -79,6 +80,43 @@ describe('useGraphHandlers', () => {
 
     // Vérifier que la référence est mise à jour
     expect(nodesRef.current[0].position).toEqual({ x: 100, y: 200 });
+  });
+
+  it('preserves node measurements across a Redux resync', () => {
+    const nodesRef = createMockRef([
+      {
+        id: 'node-1',
+        position: { x: 0, y: 0 },
+        data: { label: 'Test Node' },
+      },
+    ] as Node[]);
+
+    const { result } = renderHook(() =>
+      useGraphHandlers({ ...defaultProps, nodesRef }),
+    );
+
+    result.current.handleNodesChange([
+      {
+        id: 'node-1',
+        type: 'dimensions',
+        dimensions: { width: 180, height: 60 },
+      },
+    ]);
+
+    expect(nodesRef.current[0].measured).toEqual({ width: 180, height: 60 });
+
+    const resyncedNodes = updateNodesWithPositions(
+      [
+        {
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          data: { label: 'Test Node' },
+        },
+      ] as Node[],
+      nodesRef,
+    );
+
+    expect(resyncedNodes[0].measured).toEqual({ width: 180, height: 60 });
   });
 
   it('should handle edge changes', () => {

@@ -16,7 +16,6 @@ export const useFilterArgs = () => {
         filterIdx: filterIdx,
       },
       (result) => {
-        console.log('Filter args received for idx:', filterIdx, result.data);
         setFilterArgs(
           (prev) =>
             new Map(prev.set(filterIdx, result.data as FilterArgument[])),

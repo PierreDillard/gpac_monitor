@@ -48,6 +48,18 @@ export const useGraphHandlers = ({
             };
           }
         }
+
+        if (change.type === 'dimensions' && change.dimensions) {
+          const nodeIndex = nodesRef.current.findIndex(
+            (node) => node.id === change.id,
+          );
+          if (nodeIndex !== -1) {
+            nodesRef.current[nodeIndex] = {
+              ...nodesRef.current[nodeIndex],
+              measured: change.dimensions,
+            };
+          }
+        }
       });
     },
     [onNodesChange, nodesRef],

@@ -13,6 +13,7 @@ export function updateNodesWithPositions(
         position: existingNode.position,
         selected: existingNode.selected,
         dragging: existingNode.dragging,
+        measured: existingNode.measured,
       };
     }
     return node;
