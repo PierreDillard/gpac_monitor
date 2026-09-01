@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { selectNodesForGraphMonitor } from '../graph/graphSelectors';
-import { selectStalledFilters } from '../session/sessionStatsSelectors';
 import type { RootState } from '../../index';
 import type {
   SessionFilterStats,
@@ -83,7 +82,6 @@ const makeState = (
 
 describe('selectNodesForGraphMonitor', () => {
   beforeEach(() => {
-    selectStalledFilters.resetRecomputations();
     selectNodesForGraphMonitor.resetRecomputations();
   });
 
@@ -103,19 +101,23 @@ describe('selectNodesForGraphMonitor', () => {
     );
   });
 
-  it('recomputes when a filter flips to stalled', () => {
-    const filter = makeFilter(100);
+  it('does not recompute when a filter flips to stalled — sessionStats is not a dependency', () => {
     const stateActive = makeState(
       { '0': makeFilter(200) },
       { '0': makeFilter(100) },
     );
+    const filter = makeFilter(100);
     const stateStalled = makeState({ '0': filter }, { '0': filter });
 
     const result1 = selectNodesForGraphMonitor(stateActive);
+    const recomputationsBefore = selectNodesForGraphMonitor.recomputations();
+
     const result2 = selectNodesForGraphMonitor(stateStalled);
 
-    expect(result1).not.toBe(result2);
-    expect(result1[0].data.isStalled).toBe(false);
-    expect(result2[0].data.isStalled).toBe(true);
+    expect(result2).toBe(result1);
+    expect(selectNodesForGraphMonitor.recomputations()).toBe(
+      recomputationsBefore,
+    );
+    expect(result1[0].data).not.toHaveProperty('isStalled');
   });
 });

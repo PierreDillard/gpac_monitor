@@ -1,23 +1,18 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { isEqual } from 'lodash';
 import type { RootState } from '../../index';
-import { selectStalledFilters } from '../session/sessionStatsSelectors';
 
 const selectGraphState = (state: RootState) => state.graph;
 
 // Selectors memoized
 export const selectNodesForGraphMonitor = createSelector(
-  [selectGraphState, selectStalledFilters],
-  (graph, stalledFilters) =>
+  [selectGraphState],
+  (graph) =>
     graph.nodes.map((node) => {
       const { status, ...dataWithoutBytesDone } = node.data;
-      const isStalled = stalledFilters[node.id] ?? false;
       return {
         ...node,
-        data: {
-          ...dataWithoutBytesDone,
-          isStalled,
-        },
+        data: dataWithoutBytesDone,
       };
     }),
   {

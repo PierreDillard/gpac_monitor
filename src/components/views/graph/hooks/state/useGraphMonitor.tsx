@@ -9,7 +9,6 @@ import {
 } from '@xyflow/react';
 import {
   useAppDispatch,
-  useAppSelector,
   useToast,
   useSubscribedFilters,
 } from '@/shared/hooks/index';
@@ -17,7 +16,6 @@ import {
   setSelectedNode,
   requestFilterOpen,
 } from '@/shared/store/slices/graphSlice';
-import { selectAllFilterAlerts } from '@/shared/store/selectors/header/headerSelectors';
 import {
   annotateNodesStable,
   NodeAnnotationCache,
@@ -56,7 +54,6 @@ const useGraphMonitor = () => {
     setConnectionError,
   } = useGraphState(nodesRef, edgesRef);
   const subscribedFilterIdxs = useSubscribedFilters();
-  const allAlerts = useAppSelector(selectAllFilterAlerts);
 
   const subscribedSet = useMemo(
     () => new Set(subscribedFilterIdxs),
@@ -140,9 +137,8 @@ const useGraphMonitor = () => {
         nodeAnnotationCache.current,
         localNodes,
         subscribedSet,
-        allAlerts,
       ),
-    [localNodes, subscribedSet, allAlerts],
+    [localNodes, subscribedSet],
   );
 
   // Reset layout flag when graph structure changes (new/removed filters)
