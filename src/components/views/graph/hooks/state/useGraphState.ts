@@ -6,6 +6,7 @@ import {
   selectEdges,
   selectIsLoading,
   selectError,
+  selectSelectedNodeId,
 } from '@/shared/store/selectors/graph/graphSelectors';
 import {
   updateNodesWithPositions,
@@ -28,6 +29,7 @@ export const useGraphState = (
   const reduxEdges = useAppSelector(selectEdges);
   const isLoading = useAppSelector(selectIsLoading);
   const error = useAppSelector(selectError);
+  const selectedNodeId = useAppSelector(selectSelectedNodeId);
 
   // Performance tracking (debug only)
   const renderCount = useRef(0);
@@ -38,8 +40,8 @@ export const useGraphState = (
   }, [reduxNodes, nodesRef]);
 
   const edges = useMemo(() => {
-    return updateEdgesWithState(reduxEdges, edgesRef);
-  }, [reduxEdges, edgesRef]);
+    return updateEdgesWithState(reduxEdges, edgesRef, selectedNodeId);
+  }, [reduxEdges, edgesRef, selectedNodeId]);
 
   return {
     nodes,

@@ -9,7 +9,6 @@ import {
 } from '@xyflow/react';
 import {
   useAppDispatch,
-  useAppSelector,
   useToast,
   useSubscribedFilters,
 } from '@/shared/hooks/index';
@@ -17,7 +16,6 @@ import {
   setSelectedNode,
   requestFilterOpen,
 } from '@/shared/store/slices/graphSlice';
-import { selectAllFilterAlerts } from '@/shared/store/selectors/header/headerSelectors';
 import {
   annotateNodesStable,
   NodeAnnotationCache,
@@ -40,6 +38,8 @@ const useGraphMonitor = () => {
   // Refs to track component state
   const nodesRef = useRef<Node[]>([]);
   const edgesRef = useRef<Edge[]>([]);
+  const syncedNodesRef = useRef<Node[]>([]);
+  const syncedEdgesRef = useRef<Edge[]>([]);
   const isApplyingLayout = useRef(false);
   const nodeAnnotationCache = useRef<NodeAnnotationCache>(new Map());
 
@@ -56,7 +56,6 @@ const useGraphMonitor = () => {
     setConnectionError,
   } = useGraphState(nodesRef, edgesRef);
   const subscribedFilterIdxs = useSubscribedFilters();
-  const allAlerts = useAppSelector(selectAllFilterAlerts);
 
   const subscribedSet = useMemo(
     () => new Set(subscribedFilterIdxs),
@@ -120,12 +119,22 @@ const useGraphMonitor = () => {
   useEffect(() => {
     // Only update if not currently applying a layout
     if ((nodes.length > 0 || edges.length > 0) && !isApplyingLayout.current) {
-      if (nodesRef.current === nodes && edgesRef.current === edges) return;
-      setLocalNodes(nodes);
-      setLocalEdges(edges);
+      const nodesChanged = syncedNodesRef.current !== nodes;
+      const edgesChanged = syncedEdgesRef.current !== edges;
 
-      nodesRef.current = nodes;
-      edgesRef.current = edges;
+      if (!nodesChanged && !edgesChanged) return;
+
+      if (nodesChanged) {
+        setLocalNodes(nodes);
+        nodesRef.current = nodes;
+        syncedNodesRef.current = nodes;
+      }
+
+      if (edgesChanged) {
+        setLocalEdges(edges);
+        edgesRef.current = edges;
+        syncedEdgesRef.current = edges;
+      }
     }
   }, [nodes, edges, setLocalNodes, setLocalEdges]);
 
@@ -140,9 +149,8 @@ const useGraphMonitor = () => {
         nodeAnnotationCache.current,
         localNodes,
         subscribedSet,
-        allAlerts,
       ),
-    [localNodes, subscribedSet, allAlerts],
+    [localNodes, subscribedSet],
   );
 
   // Reset layout flag when graph structure changes (new/removed filters)

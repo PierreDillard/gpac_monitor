@@ -1,6 +1,3 @@
-// Edges
-export { default as CustomEdge } from './edges/CustomEdge';
-
 // Nodes
 export { default as CustomNode } from './nodes/CustomNode';
 

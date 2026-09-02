@@ -1,10 +1,8 @@
 import { Node } from '@xyflow/react';
-import { FilterAlerts } from '@/shared/store/slices/logs/logs.types';
 
 interface AnnotationCacheEntry {
   sourceNode: Node;
   isMonitored: boolean;
-  alerts: FilterAlerts | null;
   annotatedNode: Node;
 }
 
@@ -19,7 +17,6 @@ export function annotateNodesStable(
   cache: NodeAnnotationCache,
   nodes: Node[],
   subscribedSet: Set<number>,
-  allAlerts: Record<string, FilterAlerts>,
 ): Node[] {
   const seenNodeIds = new Set<string>();
 
@@ -28,15 +25,12 @@ export function annotateNodesStable(
 
     const filterIdx = getFilterIdx(node);
     const isMonitored = filterIdx !== undefined && subscribedSet.has(filterIdx);
-    const alerts =
-      filterIdx !== undefined ? allAlerts[String(filterIdx)] || null : null;
 
     const cachedEntry = cache.get(node.id);
     if (
       cachedEntry &&
       cachedEntry.sourceNode === node &&
-      cachedEntry.isMonitored === isMonitored &&
-      cachedEntry.alerts === alerts
+      cachedEntry.isMonitored === isMonitored
     ) {
       return cachedEntry.annotatedNode;
     }
@@ -46,13 +40,11 @@ export function annotateNodesStable(
       data: {
         ...node.data,
         isMonitored,
-        alerts,
       },
     };
     cache.set(node.id, {
       sourceNode: node,
       isMonitored,
-      alerts,
       annotatedNode,
     });
     return annotatedNode;
