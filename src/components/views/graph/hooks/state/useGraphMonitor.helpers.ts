@@ -1,5 +1,7 @@
 import { Node, Edge } from '@xyflow/react';
 
+export const EDGE_ANIMATION_MAX_EDGES = 50;
+
 export function updateNodesWithPositions(
   newNodes: Node[],
   nodesRef: React.MutableRefObject<Node[]>,
@@ -26,18 +28,20 @@ export function updateEdgesWithState(
   selectedNodeId: string | null,
 ) {
   const existingById = new Map(edgesRef.current.map((edge) => [edge.id, edge]));
+  const animateAllEdges = newEdges.length <= EDGE_ANIMATION_MAX_EDGES;
   return newEdges.map((edge) => {
     const isIncidentToSelection =
       selectedNodeId !== null &&
       (edge.source === selectedNodeId || edge.target === selectedNodeId);
+    const animated = animateAllEdges || isIncidentToSelection;
     const existingEdge = existingById.get(edge.id);
     if (existingEdge) {
       return {
         ...edge,
         selected: existingEdge.selected,
-        animated: isIncidentToSelection,
+        animated,
       };
     }
-    return { ...edge, animated: isIncidentToSelection };
+    return { ...edge, animated };
   });
 }
