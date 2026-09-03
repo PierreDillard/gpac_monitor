@@ -1,12 +1,6 @@
 import type { EnrichedFilterOverview } from '@/types/domain/gpac/model';
 import React from 'react';
-import {
-  LuActivity,
-  LuDatabase,
-  LuArrowUp,
-  LuArrowDown,
-  LuPlay,
-} from 'react-icons/lu';
+import { LuActivity, LuArrowUp, LuArrowDown, LuPlay } from 'react-icons/lu';
 import { FiltersGrid } from '../session-overview/FiltersGrid';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +9,6 @@ import {
   ActivityIndicator,
   ActivityLevel,
 } from '@/components/ui/activity-indicator';
-import { formatBytes, formatNumber } from '@/utils/formatting';
 import type {
   StatsCounters,
   SystemStats,
@@ -73,7 +66,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
       <CardContent className="p-4 h-full flex flex-col justify-between">
         {/* Top row: title + icon */}
         <div className="flex items-center justify-between mb-1">
-          <CardTitle className="text-[0.786rem] font-medium text-monitor-text-muted/60 uppercase tracking-wider">
+          <CardTitle className="text-[0.786rem] font-medium text-monitor-text-muted/80 uppercase tracking-wider">
             {title}
           </CardTitle>
           <div className="flex items-center gap-2 opacity-30">
@@ -94,7 +87,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
 
         {/* Bottom row: description or badge */}
         {description && (
-          <p className="text-[0.786rem] text-monitor-text-muted/50 leading-tight">
+          <p className="text-[0.786rem] text-monitor-text-muted/80 leading-tight">
             {description}
           </p>
         )}
@@ -150,21 +143,8 @@ export const DashboardTabContent: React.FC<DashboardTabContentProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0">
-          {/* Data Processed */}
-          <div className="relative">
-            <StatsCard
-              title="Data Processed"
-              value={formatBytes(systemStats.totalBytes)}
-              icon={<LuDatabase className="h-4 w-4" />}
-              description={`${formatNumber(systemStats.totalPackets)} packets`}
-              trend={systemStats.totalBytes > 0 ? 'up' : 'neutral'}
-              activityLevel={systemStats.dataProcessingActivityLevel}
-            />
-            <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 h-12 w-px bg-white/[0.06]" />
-          </div>
-
           {/* Processing Activity */}
-          <div className="relative lg:px-4">
+          <div className="relative">
             <StatsCard
               title="Processing Activity"
               value={statsCounters.processing}

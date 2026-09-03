@@ -7,7 +7,6 @@ import { useAppSelector } from '@/shared/hooks/redux';
 import { selectAllFilterAlerts } from '@/shared/store/selectors/header/headerSelectors';
 import FilterChangeBadges from '@/components/common/FilterChangeBadge';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { formatBytes } from '@/utils/formatting/bytes';
 import { formatTime } from '@/utils/formatting/time';
 import { formatNumber, formatPacketRate } from '@/utils/formatting/numbers';
 import { microsecondsToSeconds } from '@/utils/formatting/time';
@@ -51,7 +50,6 @@ const FilterStatCard: React.FC<FilterStatCardProps> = memo(
           ? 'sink'
           : 'process';
 
-    const formattedBytes = formatBytes(filter.bytes_done ?? 0);
     const formattedTime = formatTime(filter.time);
     const formattedPackets = formatNumber(filter.pck_done ?? 0);
     const formattedPacketRate = formatPacketRate(
@@ -154,12 +152,6 @@ const FilterStatCard: React.FC<FilterStatCardProps> = memo(
                 {formattedPacketRate}
               </span>
               <span className="text-monitor-text-subtle">•</span>
-            </>
-          )}
-          {formattedBytes && (
-            <>
-              <span title="Total data processed">{formattedBytes}</span>
-              {hasTime && <span className="text-monitor-text-subtle">•</span>}
             </>
           )}
           {hasTime && (

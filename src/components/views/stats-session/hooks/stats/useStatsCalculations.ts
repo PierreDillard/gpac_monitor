@@ -12,11 +12,8 @@ export interface StatsCounters {
 }
 
 export interface SystemStats {
-  totalBytes: number;
-  totalPackets: number;
   activeFilters: number;
   systemActivityLevel: ActivityLevel;
-  dataProcessingActivityLevel: ActivityLevel;
 }
 
 export const useStatsCalculations = (
@@ -51,23 +48,10 @@ export const useStatsCalculations = (
   const systemStats = useMemo((): SystemStats => {
     if (!filtersWithLiveStats.length) {
       return {
-        totalBytes: 0,
-        totalPackets: 0,
         activeFilters: 0,
         systemActivityLevel: 'low',
-        dataProcessingActivityLevel: 'low',
       };
     }
-
-    const totalBytes = filtersWithLiveStats.reduce(
-      (sum, filter) => sum + (filter.bytes_done || 0),
-      0,
-    );
-
-    const totalPackets = filtersWithLiveStats.reduce(
-      (sum, filter) => sum + (filter.pck_done || 0),
-      0,
-    );
 
     const activeFilters = filtersWithLiveStats.filter(
       (f) => (f.bytes_done || 0) > 0 || (f.pck_done || 0) > 0,
@@ -81,16 +65,9 @@ export const useStatsCalculations = (
     const systemActivityLevel: ActivityLevel =
       processingRatio > 0.7 ? 'high' : processingRatio > 0.3 ? 'medium' : 'low';
 
-    // Data processing activity based on bytes
-    const dataProcessingActivityLevel: ActivityLevel =
-      totalBytes > 1000000 ? 'high' : totalBytes > 100000 ? 'medium' : 'low';
-
     return {
-      totalBytes,
-      totalPackets,
       activeFilters,
       systemActivityLevel,
-      dataProcessingActivityLevel,
     };
   }, [filtersWithLiveStats, statsCounters]);
 
