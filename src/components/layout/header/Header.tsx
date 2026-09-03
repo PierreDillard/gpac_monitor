@@ -60,10 +60,15 @@ const Header = () => {
       <div className="h-full flex items-center justify-between gap-4">
         <div className="flex items-center gap-6 min-w-0 flex-1">
           <div className="flex flex-col shrink-0">
-            <h1 className="text-xl font-semibold font-ui text-gray-200">
+            <h1
+              className={`font-semibold font-ui text-gray-200 ${isHistory ? 'text-sm leading-none' : 'text-xl'}`}
+              title={
+                isHistory ? `${__BUILD_SHA__} · ${__BUILD_DATE__}` : undefined
+              }
+            >
               GPAC Monitor
             </h1>
-            <BuildVersion />
+            {!isHistory && <BuildVersion />}
           </div>
 
           <div className="h-6 w-px bg-gray-700 shrink-0" />
