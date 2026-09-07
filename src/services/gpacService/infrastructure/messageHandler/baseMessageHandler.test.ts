@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BaseMessageHandler } from './baseMessageHandler';
 import { MessageHandlerCallbacks, MessageHandlerDependencies } from './types';
 import { GpacNotificationHandlers } from '../../types';
+import { EXPECTED_WS_PROTOCOL_VERSION } from '@/services/ws/protocolVersion';
 
 function createMockCallbacks(): MessageHandlerCallbacks {
   return {
@@ -27,12 +28,20 @@ function createMockDependencies(): MessageHandlerDependencies {
   };
 }
 
-function createHandler(callbacks: MessageHandlerCallbacks) {
-  const notificationHandlers: GpacNotificationHandlers = {
+function createNotificationHandlers(): GpacNotificationHandlers {
+  return {
     onError: vi.fn(),
     onFilterUpdate: vi.fn(),
     onConnectionStatus: vi.fn(),
+    onBackendNotification: vi.fn(),
+    onProtocolVersionMismatch: vi.fn(),
   };
+}
+
+function createHandler(
+  callbacks: MessageHandlerCallbacks,
+  notificationHandlers: GpacNotificationHandlers = createNotificationHandlers(),
+) {
   return new BaseMessageHandler(
     notificationHandlers,
     callbacks,
@@ -163,6 +172,124 @@ describe('BaseMessageHandler', () => {
         { idx: 6, status: 'seg=7' },
         { idx: 2, status: 'fps=30' },
       ]);
+    });
+  });
+
+  describe('monitor_config → protocol version handshake', () => {
+    it('stores intervals and stays silent when versions match', () => {
+      const notificationHandlers = createNotificationHandlers();
+      const handlerWithNotifications = createHandler(
+        callbacks,
+        notificationHandlers,
+      );
+
+      simulateMessage(handlerWithNotifications, {
+        message: 'monitor_config',
+        intervals: { SESSION_STATS: 1000, FILTER_STATS: 1000, CPU_STATS: 500 },
+        ws_protocol_version: EXPECTED_WS_PROTOCOL_VERSION,
+        gpac_version: '26.03-DEV-rev3',
+      });
+
+      expect(callbacks.onSetMonitorConfig).toHaveBeenCalledWith({
+        SESSION_STATS: 1000,
+        FILTER_STATS: 1000,
+        CPU_STATS: 500,
+      });
+      expect(
+        notificationHandlers.onProtocolVersionMismatch,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('reports server_too_old when the field is absent (server.js predates the handshake)', () => {
+      const notificationHandlers = createNotificationHandlers();
+      const handlerWithNotifications = createHandler(
+        callbacks,
+        notificationHandlers,
+      );
+
+      simulateMessage(handlerWithNotifications, {
+        message: 'monitor_config',
+        intervals: { SESSION_STATS: 1000, FILTER_STATS: 1000, CPU_STATS: 500 },
+      });
+
+      expect(
+        notificationHandlers.onProtocolVersionMismatch,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'server_too_old',
+          receivedVersion: undefined,
+        }),
+      );
+    });
+
+    it('reports server_too_old when the server version is lower', () => {
+      const notificationHandlers = createNotificationHandlers();
+      const handlerWithNotifications = createHandler(
+        callbacks,
+        notificationHandlers,
+      );
+
+      simulateMessage(handlerWithNotifications, {
+        message: 'monitor_config',
+        intervals: { SESSION_STATS: 1000, FILTER_STATS: 1000, CPU_STATS: 500 },
+        ws_protocol_version: EXPECTED_WS_PROTOCOL_VERSION - 1,
+        gpac_version: '26.01-DEV-rev1',
+      });
+
+      expect(
+        notificationHandlers.onProtocolVersionMismatch,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'server_too_old',
+          receivedVersion: EXPECTED_WS_PROTOCOL_VERSION - 1,
+        }),
+      );
+    });
+
+    it('reports page_out_of_date when the server version is higher', () => {
+      const notificationHandlers = createNotificationHandlers();
+      const handlerWithNotifications = createHandler(
+        callbacks,
+        notificationHandlers,
+      );
+
+      simulateMessage(handlerWithNotifications, {
+        message: 'monitor_config',
+        intervals: { SESSION_STATS: 1000, FILTER_STATS: 1000, CPU_STATS: 500 },
+        ws_protocol_version: EXPECTED_WS_PROTOCOL_VERSION + 1,
+        gpac_version: '27.01-DEV-rev1',
+      });
+
+      expect(
+        notificationHandlers.onProtocolVersionMismatch,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'page_out_of_date',
+          receivedVersion: EXPECTED_WS_PROTOCOL_VERSION + 1,
+        }),
+      );
+    });
+  });
+
+  describe('setNotificationHandlers called after construction', () => {
+    it('wires notification handlers registered post-construction, not just at construction time', () => {
+      const handlerWithLateNotifications = createHandler(callbacks, {});
+      const notificationHandlers = createNotificationHandlers();
+
+      handlerWithLateNotifications.setNotificationHandlers(
+        notificationHandlers,
+      );
+
+      simulateMessage(handlerWithLateNotifications, {
+        message: 'monitor_config',
+        intervals: { SESSION_STATS: 1000, FILTER_STATS: 1000, CPU_STATS: 500 },
+      });
+
+      expect(
+        notificationHandlers.onProtocolVersionMismatch,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'server_too_old' }),
+      );
     });
   });
 
