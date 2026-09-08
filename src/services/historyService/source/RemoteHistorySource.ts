@@ -4,7 +4,12 @@ import type {
   LogEvent,
   JournalIndex,
 } from '../types';
-import type { HistorySource, HistoryManifest } from './types';
+import type {
+  HistorySource,
+  HistoryManifest,
+  HistorySessionIndex,
+  ManifestEventEntry,
+} from './types';
 import { WsSessionFileReader } from '../sessionFileReader/WsSessionFileReader';
 
 export class RemoteHistorySource implements HistorySource {
@@ -38,6 +43,24 @@ export class RemoteHistorySource implements HistorySource {
 
   async loadJournalIndex(): Promise<JournalIndex | null> {
     return this.reader.readJournalIndex(this.sessionId);
+  }
+
+  async getSessionIndex(): Promise<HistorySessionIndex | null> {
+    return this.reader.readSessionIndex(this.sessionId);
+  }
+
+  async getSegmentManifest(
+    segmentDir: string,
+  ): Promise<HistoryManifest | null> {
+    return this.reader.readManifest(this.sessionId, segmentDir);
+  }
+
+  async loadSegmentSnapshot(segmentDir: string): Promise<HistorySnapshot> {
+    return this.reader.readSnapshot(this.sessionId, segmentDir);
+  }
+
+  async loadGlobalEventsIndex(): Promise<ManifestEventEntry[] | null> {
+    return this.reader.readEventsIndex(this.sessionId);
   }
 
   private loadManifest(): Promise<HistoryManifest | null> {

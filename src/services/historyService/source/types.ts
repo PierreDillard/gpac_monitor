@@ -84,6 +84,10 @@ export interface HistorySource extends IChunkReader {
   loadSnapshot(): Promise<HistorySnapshot>;
   getManifest(): Promise<HistoryManifest | null>;
   loadJournalIndex(): Promise<JournalIndex | null>;
+  getSessionIndex(): Promise<HistorySessionIndex | null>;
+  getSegmentManifest(segmentDir: string): Promise<HistoryManifest | null>;
+  loadSegmentSnapshot(segmentDir: string): Promise<HistorySnapshot>;
+  loadGlobalEventsIndex(): Promise<ManifestEventEntry[] | null>;
 }
 
 /** Session listing (UI picker side)  */
