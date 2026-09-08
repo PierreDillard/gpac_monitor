@@ -23,6 +23,7 @@ import type { HistoryManifest, HistorySource } from './source/types';
 import { ChunkLoader } from './chunkLoader';
 import type { EventChunk } from './chunkLoader';
 import { findEventChunkIndex, findNearestCheckpoint } from './manifestParser';
+import { getSegmentDir } from './sessionIndexParser';
 
 /**
  * HistoryController — orchestrates snapshot loading + event replay.
@@ -139,7 +140,13 @@ export class HistoryController {
   }
 
   async load(source: HistorySource, dispatch: AppDispatch) {
-    const manifest = await source.getManifest();
+    const sessionIndex = await source.getSessionIndex();
+    const segmentDir = sessionIndex?.segments[0]
+      ? getSegmentDir(sessionIndex.segments[0])
+      : undefined;
+    const manifest = segmentDir
+      ? await source.getSegmentManifest(segmentDir)
+      : await source.getManifest();
     if (!manifest)
       throw new Error('[HistoryController] No manifest for session');
 
@@ -151,7 +158,7 @@ export class HistoryController {
       ...deriveTimelineEvents(manifest),
       ...deriveErrorWarningEvents(journalIndex, manifest.startUs),
     ].sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
-    this.loader = new ChunkLoader(source, manifest);
+    this.loader = new ChunkLoader(source, manifest, segmentDir);
     this.preloader = new ChunkPreloadController(
       this.loader,
       manifest,
@@ -159,10 +166,12 @@ export class HistoryController {
       this.appendLogs,
     );
 
-    const snapshot = await source.loadSnapshot();
+    const snapshot = segmentDir
+      ? await source.loadSegmentSnapshot(segmentDir)
+      : await source.loadSnapshot();
 
     this.snapshot = snapshot;
-    this.sessionStartUs = manifest.startUs;
+    this.sessionStartUs = sessionIndex?.startUs ?? manifest.startUs;
     this.sessionLogs = [];
     this.nextLogIndex = 0;
     this.loadedChunkIndex = null;
