@@ -19,11 +19,15 @@ import {
 import { ChunkPreloadController } from './replay/chunkPreloadController';
 import type { AppendLogsCallback } from './replay/chunkPreloadController';
 import { flattenLogEvents } from './replay/flattenLogEvents';
-import type { HistoryManifest, HistorySource } from './source/types';
+import type {
+  HistoryManifest,
+  HistorySource,
+  HistorySessionIndex,
+} from './source/types';
 import { ChunkLoader } from './chunkLoader';
 import type { EventChunk } from './chunkLoader';
 import { findEventChunkIndex, findNearestCheckpoint } from './manifestParser';
-import { getSegmentDir } from './sessionIndexParser';
+import { getSegmentDir, getSegmentToUs } from './sessionIndexParser';
 
 /**
  * HistoryController — orchestrates snapshot loading + event replay.
@@ -39,6 +43,7 @@ export class HistoryController {
   private nextLogIndex = 0;
   private loader: ChunkLoader | null = null;
   private manifest: HistoryManifest | null = null;
+  private sessionIndex: HistorySessionIndex | null = null;
   private loadedChunkIndex: number | null = null;
   private preloader: ChunkPreloadController | null = null;
   private timelineEvents: TimelineEvent[] = [];
@@ -141,6 +146,7 @@ export class HistoryController {
 
   async load(source: HistorySource, dispatch: AppDispatch) {
     const sessionIndex = await source.getSessionIndex();
+    this.sessionIndex = sessionIndex;
     const segmentDir = sessionIndex?.segments[0]
       ? getSegmentDir(sessionIndex.segments[0])
       : undefined;
@@ -290,6 +296,14 @@ export class HistoryController {
   }
 
   durationUs(): number {
+    if (this.sessionIndex && this.sessionIndex.segments.length > 0) {
+      const lastPosition = this.sessionIndex.segments.length - 1;
+      const lastSegment = this.sessionIndex.segments[lastPosition];
+      const toUs =
+        getSegmentToUs(this.sessionIndex, lastPosition) ??
+        (lastSegment.fromUs ?? 0) + this.sessionIndex.segmentDurationUs;
+      return toUs - this.sessionStartUs;
+    }
     if (this.manifest) return this.manifest.endUs - this.manifest.startUs;
     return this.player.durationUs();
   }
