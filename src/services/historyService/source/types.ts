@@ -58,9 +58,24 @@ export interface HistoryManifest {
 
 /** Low-level chunk I/O — implemented by both File and Remote sources. */
 export interface IChunkReader {
-  readChunk(index: number): Promise<HistoryEvent[]>;
-  readLogChunk(index: number): Promise<LogEvent[]>;
-  readCheckpoint(chunkIndex: number): Promise<unknown>;
+  readChunk(index: number, segmentDir?: string): Promise<HistoryEvent[]>;
+  readLogChunk(index: number, segmentDir?: string): Promise<LogEvent[]>;
+  readCheckpoint(chunkIndex: number, segmentDir?: string): Promise<unknown>;
+}
+
+export interface HistorySessionIndexSegment {
+  index: number;
+  fromUs: number | null;
+  toUs?: number;
+}
+
+export interface HistorySessionIndex {
+  version: number;
+  startUs: number | null;
+  endUs?: number;
+  segmentDurationUs: number;
+  retentionMaxSegments: number;
+  segments: HistorySessionIndexSegment[];
 }
 
 /** Per-session data source (player side). */
