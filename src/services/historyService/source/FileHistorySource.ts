@@ -28,16 +28,19 @@ export class FileHistorySource implements HistorySource {
     return this.loadManifest();
   }
 
-  async readChunk(index: number): Promise<HistoryEvent[]> {
-    return this.reader.readChunk(this.sessionId, index);
+  async readChunk(index: number, segmentDir?: string): Promise<HistoryEvent[]> {
+    return this.reader.readChunk(this.sessionId, index, segmentDir);
   }
 
-  async readLogChunk(index: number): Promise<LogEvent[]> {
-    return this.reader.readLogChunk(this.sessionId, index);
+  async readLogChunk(index: number, segmentDir?: string): Promise<LogEvent[]> {
+    return this.reader.readLogChunk(this.sessionId, index, segmentDir);
   }
 
-  async readCheckpoint(chunkIndex: number): Promise<unknown> {
-    return this.reader.readCheckpoint(this.sessionId, chunkIndex);
+  async readCheckpoint(
+    chunkIndex: number,
+    segmentDir?: string,
+  ): Promise<unknown> {
+    return this.reader.readCheckpoint(this.sessionId, chunkIndex, segmentDir);
   }
 
   async loadJournalIndex(): Promise<JournalIndex | null> {

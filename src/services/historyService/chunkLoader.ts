@@ -31,6 +31,7 @@ export class ChunkLoader {
   constructor(
     private readonly reader: IChunkReader,
     private readonly manifest: HistoryManifest,
+    private readonly segmentDir?: string,
   ) {}
 
   async loadEventChunk(position: number): Promise<EventChunk> {
@@ -42,7 +43,7 @@ export class ChunkLoader {
     }
 
     const { fromUs, toUs } = getEventChunkRange(this.manifest, position);
-    const events = await this.reader.readChunk(position);
+    const events = await this.reader.readChunk(position, this.segmentDir);
     const chunk: EventChunk = { index: position, fromUs, toUs, events };
 
     this.eventCache.set(position, chunk);
@@ -63,7 +64,7 @@ export class ChunkLoader {
 
   async loadCheckpoint(cpFile: string): Promise<HistoryCheckpoint | null> {
     const chunkIndex = chunkIndexFromPath(cpFile);
-    const raw = await this.reader.readCheckpoint(chunkIndex);
+    const raw = await this.reader.readCheckpoint(chunkIndex, this.segmentDir);
     if (!raw || typeof raw !== 'object') return null;
     return raw as HistoryCheckpoint;
   }
@@ -88,7 +89,7 @@ export class ChunkLoader {
     if (cached) return cached;
 
     const logIndex = chunkIndexFromPath(entry.file);
-    const logs = await this.reader.readLogChunk(logIndex);
+    const logs = await this.reader.readLogChunk(logIndex, this.segmentDir);
     const chunk: LogChunk = { fromUs: entry.fromUs, toUs: entry.toUs, logs };
 
     this.logCache.set(entry.file, chunk);
