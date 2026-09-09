@@ -23,8 +23,8 @@ export type LogChunk = {
 const MAX_LOG_CHUNKS = 10;
 
 export class ChunkLoader {
-  // Events: 2 slots (current + next). Purged on each load.
-  private eventCache = new Map<number, EventChunk>();
+  // Events: 2 slots per segmentDir (current + next). Purged on each load.
+  private eventCache = new Map<string, EventChunk>();
   // Logs: keyed by file path. Purged when exceeding MAX_LOG_CHUNKS or via clearCache().
   private logCache = new Map<string, LogChunk>();
 
@@ -34,8 +34,12 @@ export class ChunkLoader {
     private readonly segmentDir?: string,
   ) {}
 
-  async loadEventChunk(position: number): Promise<EventChunk> {
-    const cached = this.eventCache.get(position);
+  async loadEventChunk(
+    position: number,
+    segmentDir: string | undefined = this.segmentDir,
+  ): Promise<EventChunk> {
+    const key = this.eventCacheKey(segmentDir, position);
+    const cached = this.eventCache.get(key);
     if (cached) return cached;
 
     if (position < 0 || position >= this.manifest.chunkCount) {
@@ -43,17 +47,18 @@ export class ChunkLoader {
     }
 
     const { fromUs, toUs } = getEventChunkRange(this.manifest, position);
-    const events = await this.reader.readChunk(position, this.segmentDir);
+    const events = await this.reader.readChunk(position, segmentDir);
     const chunk: EventChunk = { index: position, fromUs, toUs, events };
 
-    this.eventCache.set(position, chunk);
-    this.purgeEventCache(position);
+    this.eventCache.set(key, chunk);
+    this.purgeEventCache(segmentDir, position);
 
     return chunk;
   }
 
   async preloadEventChunk(position: number): Promise<void> {
-    if (this.eventCache.has(position)) return;
+    if (this.eventCache.has(this.eventCacheKey(this.segmentDir, position)))
+      return;
     if (position < 0 || position >= this.manifest.chunkCount) return;
     try {
       await this.loadEventChunk(position);
@@ -62,9 +67,12 @@ export class ChunkLoader {
     }
   }
 
-  async loadCheckpoint(cpFile: string): Promise<HistoryCheckpoint | null> {
+  async loadCheckpoint(
+    cpFile: string,
+    segmentDir: string | undefined = this.segmentDir,
+  ): Promise<HistoryCheckpoint | null> {
     const chunkIndex = chunkIndexFromPath(cpFile);
-    const raw = await this.reader.readCheckpoint(chunkIndex, this.segmentDir);
+    const raw = await this.reader.readCheckpoint(chunkIndex, segmentDir);
     if (!raw || typeof raw !== 'object') return null;
     return raw as HistoryCheckpoint;
   }
@@ -72,9 +80,12 @@ export class ChunkLoader {
   async loadLogChunksInRange(
     fromUs: number,
     toUs: number,
+    segmentDir: string | undefined = this.segmentDir,
   ): Promise<LogChunk[]> {
     const entries = findLogChunksInRange(this.manifest, fromUs, toUs);
-    return Promise.all(entries.map((entry) => this.loadLogChunk(entry)));
+    return Promise.all(
+      entries.map((entry) => this.loadLogChunk(entry, segmentDir)),
+    );
   }
 
   clearCache(): void {
@@ -84,12 +95,15 @@ export class ChunkLoader {
 
   // --- private ---
 
-  private async loadLogChunk(entry: HistoryManifestChunk): Promise<LogChunk> {
+  private async loadLogChunk(
+    entry: HistoryManifestChunk,
+    segmentDir: string | undefined,
+  ): Promise<LogChunk> {
     const cached = this.logCache.get(entry.file);
     if (cached) return cached;
 
     const logIndex = chunkIndexFromPath(entry.file);
-    const logs = await this.reader.readLogChunk(logIndex, this.segmentDir);
+    const logs = await this.reader.readLogChunk(logIndex, segmentDir);
     const chunk: LogChunk = { fromUs: entry.fromUs, toUs: entry.toUs, logs };
 
     this.logCache.set(entry.file, chunk);
@@ -98,10 +112,23 @@ export class ChunkLoader {
     return chunk;
   }
 
-  /** Keep only current position and next (position + 1) in event cache. */
-  private purgeEventCache(currentPosition: number): void {
+  private eventCacheKey(
+    segmentDir: string | undefined,
+    position: number,
+  ): string {
+    return `${segmentDir ?? ''}::${position}`;
+  }
+
+  /** Keep only current position and next (position + 1), scoped to segmentDir. */
+  private purgeEventCache(
+    segmentDir: string | undefined,
+    currentPosition: number,
+  ): void {
+    const prefix = `${segmentDir ?? ''}::`;
+    const currentKey = this.eventCacheKey(segmentDir, currentPosition);
+    const nextKey = this.eventCacheKey(segmentDir, currentPosition + 1);
     for (const key of this.eventCache.keys()) {
-      if (key !== currentPosition && key !== currentPosition + 1) {
+      if (key.startsWith(prefix) && key !== currentKey && key !== nextKey) {
         this.eventCache.delete(key);
       }
     }
