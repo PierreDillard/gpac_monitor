@@ -206,4 +206,71 @@ describe('HistoryController.seek — cross-segment', () => {
     expect(source.readChunk).toHaveBeenCalledWith(1, 'segments/0000');
     expect(controller.getSessionStartUs()).toBe(0);
   });
+
+  it('looks back into a previous segment whose chunkCount is larger than the current one', async () => {
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 50_000_000,
+      retentionMaxSegments: 30,
+      segments: [
+        { index: 0, fromUs: 0, toUs: 50_000_000 },
+        { index: 1, fromUs: 50_000_000 },
+      ],
+    };
+    const segment0Manifest: HistoryManifest = {
+      version: 1,
+      startUs: 0,
+      endUs: 50_000_000,
+      chunkDurationUs: 10_000_000,
+      chunkCount: 5,
+    };
+    const segment1Manifest: HistoryManifest = {
+      version: 1,
+      startUs: 50_000_000,
+      endUs: 70_000_000,
+      chunkDurationUs: 10_000_000,
+      chunkCount: 2,
+    };
+
+    const source: HistorySource = {
+      sessionId: 'test-session',
+      loadSnapshot: vi.fn(),
+      getManifest: vi.fn(),
+      loadJournalIndex: vi.fn().mockResolvedValue(null),
+      getSessionIndex: vi.fn().mockResolvedValue(sessionIndex),
+      getSegmentManifest: vi
+        .fn()
+        .mockImplementation(async (dir: string) =>
+          dir === 'segments/0000' ? segment0Manifest : segment1Manifest,
+        ),
+      loadSegmentSnapshot: vi.fn().mockResolvedValue(makeSnapshot()),
+      loadGlobalEventsIndex: vi.fn().mockResolvedValue(null),
+      readChunk: vi
+        .fn()
+        .mockImplementation(async (index: number, segmentDir?: string) =>
+          segmentDir === 'segments/0000' && index === 4
+            ? [makeStatsEvent(49_000_000)]
+            : [],
+        ),
+      readLogChunk: vi.fn().mockResolvedValue([]),
+      readCheckpoint: vi.fn().mockResolvedValue(null),
+    };
+
+    const controller = new HistoryController();
+    await controller.load(source, vi.fn() as any);
+
+    const adapter = (controller as any).adapter;
+    const flushSpy = vi.spyOn(adapter, 'flush');
+    const player = (controller as any).player;
+    const loadSpy = vi.spyOn(player, 'load');
+
+    await controller.seek(50_000_000);
+
+    expect(source.readChunk).toHaveBeenCalledWith(0, 'segments/0001');
+    expect(source.readChunk).toHaveBeenCalledWith(4, 'segments/0000');
+    expect(flushSpy).toHaveBeenCalledOnce();
+    expect(loadSpy).toHaveBeenCalledOnce();
+    expect((controller as any).loadedChunkIndex).toBe(0);
+  });
 });

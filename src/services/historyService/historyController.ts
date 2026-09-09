@@ -277,12 +277,12 @@ export class HistoryController {
           await source.getSegmentManifest(previousSegmentDir);
         if (version !== preloader.getVersion()) return;
         if (previousManifest) {
-          const prevChunk = await loader.loadEventChunk(
+          const previousEvents = await source.readChunk(
             previousManifest.chunkCount - 1,
             previousSegmentDir,
           );
           if (version !== preloader.getVersion()) return;
-          this.collectStatsEvents(prevChunk.events, prevChunkStats);
+          this.collectStatsEvents(previousEvents, prevChunkStats);
         }
       }
     }
