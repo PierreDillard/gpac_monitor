@@ -5,6 +5,7 @@ import {
   getSegmentDir,
   getSegmentToUs,
   isSegmentDone,
+  findSegmentForTimestamp,
 } from '../sessionIndexParser';
 import type { HistorySessionIndex } from '../source/types';
 
@@ -121,6 +122,49 @@ describe('isSegmentDone', () => {
     };
 
     expect(isSegmentDone(sessionIndex, 0)).toBe(true);
+  });
+});
+
+describe('findSegmentForTimestamp', () => {
+  const sessionIndex: HistorySessionIndex = {
+    version: 1,
+    startUs: 0,
+    segmentDurationUs: 60_000_000,
+    retentionMaxSegments: 30,
+    segments: [
+      { index: 0, fromUs: 0, toUs: 60_000_000 },
+      { index: 1, fromUs: 60_000_000, toUs: 120_000_000 },
+      { index: 2, fromUs: 130_000_000 },
+    ],
+  };
+
+  it('returns the segment containing tsUs', () => {
+    expect(findSegmentForTimestamp(sessionIndex, 90_000_000)).toEqual(
+      sessionIndex.segments[1],
+    );
+  });
+
+  it('falls back to the first segment when tsUs is before the earliest fromUs', () => {
+    expect(findSegmentForTimestamp(sessionIndex, -1)).toEqual(
+      sessionIndex.segments[0],
+    );
+  });
+
+  it('returns the last segment when tsUs is after it started', () => {
+    expect(findSegmentForTimestamp(sessionIndex, 500_000_000)).toEqual(
+      sessionIndex.segments[2],
+    );
+  });
+
+  it('returns the previous segment when tsUs falls in a gap between segments', () => {
+    expect(findSegmentForTimestamp(sessionIndex, 125_000_000)).toEqual(
+      sessionIndex.segments[1],
+    );
+  });
+
+  it('returns null when there are no segments at all', () => {
+    const empty: HistorySessionIndex = { ...sessionIndex, segments: [] };
+    expect(findSegmentForTimestamp(empty, 0)).toBeNull();
   });
 });
 

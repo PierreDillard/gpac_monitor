@@ -72,6 +72,27 @@ export function getSegmentToUs(
   return sessionIndex.endUs;
 }
 
+export function findSegmentForTimestamp(
+  sessionIndex: HistorySessionIndex,
+  tsUs: number,
+): HistorySessionIndexSegment | null {
+  let candidate: HistorySessionIndexSegment | null = null;
+  let candidateFromUs = 0;
+
+  for (const segment of sessionIndex.segments) {
+    // Skip segments that haven't started yet, or start after tsUs.
+    if (segment.fromUs === null || segment.fromUs > tsUs) continue;
+    // Then keep the one starting closest to tsUs
+    if (candidate === null || segment.fromUs > candidateFromUs) {
+      candidate = segment;
+      candidateFromUs = segment.fromUs;
+    }
+  }
+
+  // tsUs before the first known fromUs: fall back to the first segment.
+  return candidate ?? sessionIndex.segments[0] ?? null;
+}
+
 export function isSegmentDone(
   sessionIndex: HistorySessionIndex,
   segmentPosition: number,
