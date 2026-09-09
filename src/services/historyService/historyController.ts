@@ -196,7 +196,7 @@ export class HistoryController {
     this.nextLogIndex = 0;
     this.loadedChunkIndex = null;
     this.adapter = new HistoryAdapter(dispatch);
-    this.adapter.hydrate(snapshot, manifest.startUs);
+    this.adapter.hydrate(snapshot, sessionStartUs);
     this.badgeExpiration.reset();
     this.player.load([], this.handleReplayEvent, this.handlePlaybackTick);
   }

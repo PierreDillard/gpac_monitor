@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HistoryController } from '../historyController';
+import { HistoryAdapter } from '../integration/historyAdapter';
 import type {
   HistorySource,
   HistoryManifest,
@@ -77,6 +78,34 @@ describe('HistoryController.load', () => {
     expect(source.loadSegmentSnapshot).toHaveBeenCalledWith('segments/0000');
     expect(source.getManifest).not.toHaveBeenCalled();
     expect(source.loadSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('hydrates with the root session startUs, not the surviving segment manifest startUs', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 20_000_000,
+      retentionMaxSegments: 3,
+      segments: [{ index: 3, fromUs: 60_000_000 }],
+    };
+    const survivingSegmentManifest: HistoryManifest = {
+      ...makeManifest(),
+      startUs: 60_000_000,
+      endUs: 80_000_000,
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi
+      .fn()
+      .mockResolvedValue(survivingSegmentManifest);
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+    const hydrateSpy = vi.spyOn(HistoryAdapter.prototype, 'hydrate');
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(hydrateSpy).toHaveBeenCalledWith(expect.anything(), 0);
+    hydrateSpy.mockRestore();
   });
 });
 
