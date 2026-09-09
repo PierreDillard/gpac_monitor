@@ -23,7 +23,7 @@ export type LogChunk = {
 const MAX_LOG_CHUNKS = 10;
 
 export class ChunkLoader {
-  // Events: keeps current + next position. Purged on each load.
+  // Events: 2 slots (current + next). Purged on each load.
   private eventCache = new Map<number, EventChunk>();
   // Logs: keyed by file path. Purged when exceeding MAX_LOG_CHUNKS or via clearCache().
   private logCache = new Map<string, LogChunk>();
@@ -98,7 +98,7 @@ export class ChunkLoader {
     return chunk;
   }
 
-  /** Keep only current position and next (position + 1). */
+  /** Keep only current position and next (position + 1) in event cache. */
   private purgeEventCache(currentPosition: number): void {
     for (const key of this.eventCache.keys()) {
       if (key !== currentPosition && key !== currentPosition + 1) {
