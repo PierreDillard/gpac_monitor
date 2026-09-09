@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useDataSource } from '@/services/dataSource/DataSourceContext';
 import { usePlayerState } from '@/services/historyService/usePlayerState';
 import { useTimelineEvents } from '@/services/historyService/useTimelineEvents';
-import { getDuration } from '@/services/historyService/manifestParser';
 import {
   TIMELINE_DOCK_DEFAULT_HEIGHT_PX,
   EVENTS_PANEL_WIDTH_PX,
@@ -15,14 +14,20 @@ import { getCursorPercent } from '@/utils/history/timelineViewportView';
 import HistoryTimelineDock from './HistoryTimelineDock';
 
 const HistoryControls = () => {
-  const { mode, manifest } = useDataSource();
-  const { state, currentTimeUs, play, pause, seek } = usePlayerState();
+  const { mode } = useDataSource();
+  const {
+    state,
+    currentTimeUs,
+    durationUs,
+    sessionStartUs,
+    play,
+    pause,
+    seek,
+  } = usePlayerState();
   const [dockHeight, setDockHeight] = useState(TIMELINE_DOCK_DEFAULT_HEIGHT_PX);
   const [panelWidth, setPanelWidth] = useState(EVENTS_PANEL_WIDTH_PX);
 
   const maxDockHeight = useMemo(() => Math.round(window.innerHeight * 0.6), []);
-  const durationUs = manifest ? getDuration(manifest) : 0;
-  const sessionStartUs = manifest?.startUs ?? 0;
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>('all');
   const allEvents = useTimelineEvents();
   const { viewport, zoomAround } = useTimelineViewport(durationUs);
