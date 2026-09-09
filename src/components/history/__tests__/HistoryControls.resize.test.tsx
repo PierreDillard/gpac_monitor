@@ -10,6 +10,8 @@ vi.mock('@/services/historyService/usePlayerState', () => ({
   usePlayerState: () => ({
     state: 'idle',
     currentTimeUs: 0,
+    durationUs: 0,
+    sessionStartUs: 0,
     play: vi.fn(),
     pause: vi.fn(),
     seek: vi.fn(),
