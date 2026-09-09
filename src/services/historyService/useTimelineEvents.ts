@@ -4,10 +4,10 @@ import { historyController } from './historyController';
 import type { TimelineEvent } from './types';
 
 export function useTimelineEvents(): TimelineEvent[] {
-  const { manifest } = useDataSource();
+  const { sessionLoaded } = useDataSource();
 
   return useMemo(
-    () => (manifest ? historyController.getTimelineEvents() : []),
-    [manifest],
+    () => (sessionLoaded ? historyController.getTimelineEvents() : []),
+    [sessionLoaded],
   );
 }

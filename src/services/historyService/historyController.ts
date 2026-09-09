@@ -157,12 +157,17 @@ export class HistoryController {
       throw new Error('[HistoryController] No manifest for session');
 
     this.manifest = manifest;
-    const journalIndex = manifest.journalIndex
-      ? await source.loadJournalIndex()
-      : null;
+    const sessionStartUs = sessionIndex?.startUs ?? manifest.startUs;
+    const eventsIndex = segmentDir
+      ? ((await source.loadGlobalEventsIndex()) ?? [])
+      : (manifest.eventsIndex ?? []);
+    const journalIndex =
+      segmentDir || manifest.journalIndex
+        ? await source.loadJournalIndex()
+        : null;
     this.timelineEvents = [
-      ...deriveTimelineEvents(manifest),
-      ...deriveErrorWarningEvents(journalIndex, manifest.startUs),
+      ...deriveTimelineEvents(eventsIndex, sessionStartUs),
+      ...deriveErrorWarningEvents(journalIndex, sessionStartUs),
     ].sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
     this.loader = new ChunkLoader(source, manifest, segmentDir);
     this.preloader = new ChunkPreloadController(
@@ -177,7 +182,7 @@ export class HistoryController {
       : await source.loadSnapshot();
 
     this.snapshot = snapshot;
-    this.sessionStartUs = sessionIndex?.startUs ?? manifest.startUs;
+    this.sessionStartUs = sessionStartUs;
     this.sessionLogs = [];
     this.nextLogIndex = 0;
     this.loadedChunkIndex = null;
