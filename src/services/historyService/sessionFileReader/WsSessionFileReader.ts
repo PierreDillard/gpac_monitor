@@ -120,13 +120,16 @@ export class WsSessionFileReader {
   ): Promise<HistoryEvent[]> {
     await this.ensureConnected();
     const file = `chunks/chunk_${String(chunkIndex).padStart(4, '0')}.jsonl`;
-    const response = await this.sendCommand({
-      message: 'read_file',
-      sessionId,
-      file,
-    });
-    const content = response.content as string;
-    return parseEventsJsonl(content);
+    try {
+      const response = await this.sendCommand({
+        message: 'read_file',
+        sessionId,
+        file,
+      });
+      return parseEventsJsonl(response.content as string);
+    } catch {
+      return [];
+    }
   }
 
   async readLogChunk(
@@ -135,14 +138,18 @@ export class WsSessionFileReader {
   ): Promise<LogEvent[]> {
     await this.ensureConnected();
     const file = `logs/logs_${String(chunkIndex).padStart(4, '0')}.jsonl`;
-    const response = await this.sendCommand({
-      message: 'read_file',
-      sessionId,
-      file,
-    });
-    return parseEventsJsonl(
-      response.content as string,
-    ) as unknown as LogEvent[];
+    try {
+      const response = await this.sendCommand({
+        message: 'read_file',
+        sessionId,
+        file,
+      });
+      return parseEventsJsonl(
+        response.content as string,
+      ) as unknown as LogEvent[];
+    } catch {
+      return [];
+    }
   }
 
   private async ensureConnected(): Promise<void> {
