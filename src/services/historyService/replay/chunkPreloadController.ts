@@ -8,7 +8,7 @@ export type AppendLogsCallback = (
   isStale: () => boolean,
 ) => Promise<void>;
 
-type PlayerInterface = {
+export type PlayerInterface = {
   append: (events: HistoryEvent[]) => void;
   setAwaitingMoreEvents: (value: boolean) => void;
 };

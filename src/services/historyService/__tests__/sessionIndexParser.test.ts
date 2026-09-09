@@ -6,6 +6,7 @@ import {
   getSegmentToUs,
   isSegmentDone,
   findSegmentForTimestamp,
+  findPreviousSegmentDir,
 } from '../sessionIndexParser';
 import type { HistorySessionIndex } from '../source/types';
 
@@ -165,6 +166,38 @@ describe('findSegmentForTimestamp', () => {
   it('returns null when there are no segments at all', () => {
     const empty: HistorySessionIndex = { ...sessionIndex, segments: [] };
     expect(findSegmentForTimestamp(empty, 0)).toBeNull();
+  });
+});
+
+describe('findPreviousSegmentDir', () => {
+  const sessionIndex: HistorySessionIndex = {
+    version: 1,
+    startUs: 300_000_000,
+    segmentDurationUs: 60_000_000,
+    retentionMaxSegments: 3,
+    segments: [
+      { index: 5, fromUs: 300_000_000, toUs: 360_000_000 },
+      { index: 6, fromUs: 360_000_000, toUs: 420_000_000 },
+      { index: 7, fromUs: 420_000_000 },
+    ],
+  };
+
+  it('returns the array-adjacent segment, not index - 1', () => {
+    expect(findPreviousSegmentDir(sessionIndex, 'segments/0007')).toBe(
+      'segments/0006',
+    );
+  });
+
+  it('returns undefined for the first retained segment, even though its index is not 0 (after purge)', () => {
+    expect(
+      findPreviousSegmentDir(sessionIndex, 'segments/0005'),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when the current segmentDir is not found', () => {
+    expect(
+      findPreviousSegmentDir(sessionIndex, 'segments/0099'),
+    ).toBeUndefined();
   });
 });
 

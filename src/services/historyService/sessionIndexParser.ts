@@ -93,6 +93,17 @@ export function findSegmentForTimestamp(
   return candidate ?? sessionIndex.segments[0] ?? null;
 }
 
+export function findPreviousSegmentDir(
+  sessionIndex: HistorySessionIndex,
+  currentSegmentDir: string,
+): string | undefined {
+  const currentPosition = sessionIndex.segments.findIndex(
+    (segment) => getSegmentDir(segment) === currentSegmentDir,
+  );
+  if (currentPosition <= 0) return undefined;
+  return getSegmentDir(sessionIndex.segments[currentPosition - 1]);
+}
+
 export function isSegmentDone(
   sessionIndex: HistorySessionIndex,
   segmentPosition: number,

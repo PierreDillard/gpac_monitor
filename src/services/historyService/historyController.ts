@@ -18,6 +18,7 @@ import {
 } from './replay/badgeExpirationController';
 import { ChunkPreloadController } from './replay/chunkPreloadController';
 import type { AppendLogsCallback } from './replay/chunkPreloadController';
+import { resolveSegmentSwitch } from './replay/resolveSegmentSwitch';
 import { flattenLogEvents } from './replay/flattenLogEvents';
 import type {
   HistoryManifest,
@@ -27,7 +28,11 @@ import type {
 import { ChunkLoader } from './chunkLoader';
 import type { EventChunk } from './chunkLoader';
 import { findEventChunkIndex, findNearestCheckpoint } from './manifestParser';
-import { getSegmentDir, getSegmentToUs } from './sessionIndexParser';
+import {
+  findPreviousSegmentDir,
+  getSegmentDir,
+  getSegmentToUs,
+} from './sessionIndexParser';
 
 /**
  * HistoryController — orchestrates snapshot loading + event replay.
@@ -44,6 +49,8 @@ export class HistoryController {
   private loader: ChunkLoader | null = null;
   private manifest: HistoryManifest | null = null;
   private sessionIndex: HistorySessionIndex | null = null;
+  private source: HistorySource | null = null;
+  private segmentDir: string | undefined;
   private loadedChunkIndex: number | null = null;
   private preloader: ChunkPreloadController | null = null;
   private timelineEvents: TimelineEvent[] = [];
@@ -147,9 +154,11 @@ export class HistoryController {
   async load(source: HistorySource, dispatch: AppDispatch) {
     const sessionIndex = await source.getSessionIndex();
     this.sessionIndex = sessionIndex;
+    this.source = source;
     const segmentDir = sessionIndex?.segments[0]
       ? getSegmentDir(sessionIndex.segments[0])
       : undefined;
+    this.segmentDir = segmentDir;
     const manifest = segmentDir
       ? await source.getSegmentManifest(segmentDir)
       : await source.getManifest();
@@ -194,9 +203,41 @@ export class HistoryController {
 
   async seek(tsUs: number): Promise<void> {
     this.preloader?.invalidate();
-    if (!this.manifest || !this.loader || !this.adapter || !this.preloader)
+    if (
+      !this.manifest ||
+      !this.loader ||
+      !this.adapter ||
+      !this.preloader ||
+      !this.source
+    )
       return;
-    const { manifest, loader, adapter, preloader } = this;
+    const { adapter, source } = this;
+    let manifest = this.manifest;
+    let loader = this.loader;
+    let preloader = this.preloader;
+    let segmentDir = this.segmentDir;
+
+    const switchResult = await resolveSegmentSwitch({
+      sessionIndex: this.sessionIndex,
+      source,
+      tsUs,
+      segmentDir,
+      preloader,
+      player: this.player,
+      appendLogs: this.appendLogs,
+    });
+    if (switchResult.stale) return;
+    if (switchResult.changed) {
+      manifest = switchResult.manifest;
+      loader = switchResult.loader;
+      preloader = switchResult.preloader;
+      segmentDir = switchResult.segmentDir;
+      this.manifest = manifest;
+      this.loader = loader;
+      this.preloader = preloader;
+      this.snapshot = switchResult.snapshot;
+      this.segmentDir = segmentDir;
+    }
     const version = preloader.getVersion();
 
     const chunkIndex = findEventChunkIndex(manifest, tsUs);
@@ -225,12 +266,23 @@ export class HistoryController {
     if (chunkIndex > 0) {
       const prevChunk = await loader.loadEventChunk(chunkIndex - 1);
       if (version !== preloader.getVersion()) return;
-      for (const event of prevChunk.events) {
-        if (
-          event.message === 'session_stats' ||
-          event.message === 'cpu_stats'
-        ) {
-          prevChunkStats.push(event);
+      this.collectStatsEvents(prevChunk.events, prevChunkStats);
+    } else if (this.sessionIndex && segmentDir) {
+      const previousSegmentDir = findPreviousSegmentDir(
+        this.sessionIndex,
+        segmentDir,
+      );
+      if (previousSegmentDir) {
+        const previousManifest =
+          await source.getSegmentManifest(previousSegmentDir);
+        if (version !== preloader.getVersion()) return;
+        if (previousManifest) {
+          const prevChunk = await loader.loadEventChunk(
+            previousManifest.chunkCount - 1,
+            previousSegmentDir,
+          );
+          if (version !== preloader.getVersion()) return;
+          this.collectStatsEvents(prevChunk.events, prevChunkStats);
         }
       }
     }
@@ -319,6 +371,17 @@ export class HistoryController {
 
   getTimelineEvents(): TimelineEvent[] {
     return this.timelineEvents;
+  }
+
+  private collectStatsEvents(
+    events: HistoryEvent[],
+    into: HistoryEvent[],
+  ): void {
+    for (const event of events) {
+      if (event.message === 'session_stats' || event.message === 'cpu_stats') {
+        into.push(event);
+      }
+    }
   }
 
   private getNextLogIndexFromTimestamp(timestampUs: number): number {
