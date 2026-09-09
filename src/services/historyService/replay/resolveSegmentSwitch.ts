@@ -15,7 +15,7 @@ import { findSegmentForTimestamp } from '../sessionIndexParser';
 
 export type SegmentSwitchOutcome =
   | { stale: true }
-  | { stale: false; changed: false }
+  | { stale: false; changed: false; failed?: true }
   | {
       stale: false;
       changed: true;
@@ -55,7 +55,8 @@ export async function resolveSegmentSwitch(params: {
   );
   const switched = await segmentSwitch.switchTo(targetSegment, segmentDir);
   if (version !== preloader.getVersion()) return { stale: true };
-  if (!switched) return { stale: false, changed: false };
+  if (switched.stale) return { stale: true };
+  if (!switched.changed) return switched;
 
   const loader = new ChunkLoader(
     source,

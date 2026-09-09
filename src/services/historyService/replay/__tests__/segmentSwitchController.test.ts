@@ -39,13 +39,13 @@ function makeSource(): HistorySource {
 }
 
 describe('SegmentSwitchController', () => {
-  it('returns null without fetching when the target is already the current segment', async () => {
+  it('returns a no-op outcome without fetching when the target is already the current segment', async () => {
     const source = makeSource();
     const controller = new SegmentSwitchController(source, () => 0);
 
     const result = await controller.switchTo(targetSegment, 'segments/0002');
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ stale: false, changed: false });
     expect(source.getSegmentManifest).not.toHaveBeenCalled();
     expect(source.loadSegmentSnapshot).not.toHaveBeenCalled();
   });
@@ -61,13 +61,15 @@ describe('SegmentSwitchController', () => {
     expect(source.loadSegmentSnapshot).toHaveBeenCalledTimes(1);
     expect(source.loadSegmentSnapshot).toHaveBeenCalledWith('segments/0002');
     expect(result).toEqual({
+      stale: false,
+      changed: true,
       manifest,
       snapshot,
       segmentDir: 'segments/0002',
     });
   });
 
-  it('returns null without rewiring when the version goes stale during the await', async () => {
+  it('returns stale without rewiring when the version goes stale during the await', async () => {
     let version = 0;
     const source = makeSource();
     (source.getSegmentManifest as ReturnType<typeof vi.fn>).mockImplementation(
@@ -80,7 +82,20 @@ describe('SegmentSwitchController', () => {
 
     const result = await controller.switchTo(targetSegment, 'segments/0001');
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ stale: true });
+    expect(source.loadSegmentSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('returns a distinct failed outcome (not a no-op) when getSegmentManifest resolves null', async () => {
+    const source = makeSource();
+    (source.getSegmentManifest as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null,
+    );
+    const controller = new SegmentSwitchController(source, () => 0);
+
+    const result = await controller.switchTo(targetSegment, 'segments/0001');
+
+    expect(result).toEqual({ stale: false, changed: false, failed: true });
     expect(source.loadSegmentSnapshot).not.toHaveBeenCalled();
   });
 });

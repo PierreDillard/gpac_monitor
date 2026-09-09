@@ -274,3 +274,65 @@ describe('HistoryController.seek — cross-segment', () => {
     expect((controller as any).loadedChunkIndex).toBe(0);
   });
 });
+
+describe('HistoryController.seek — segment switch failure', () => {
+  it('aborts without mutating state when the target segment manifest fails to load', async () => {
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 20_000_000,
+      retentionMaxSegments: 30,
+      segments: [
+        { index: 0, fromUs: 0, toUs: 20_000_000 },
+        { index: 1, fromUs: 20_000_000 },
+      ],
+    };
+    const segment0Manifest: HistoryManifest = {
+      version: 1,
+      startUs: 0,
+      endUs: 20_000_000,
+      chunkDurationUs: 10_000_000,
+      chunkCount: 2,
+    };
+
+    const source: HistorySource = {
+      sessionId: 'test-session',
+      loadSnapshot: vi.fn(),
+      getManifest: vi.fn(),
+      loadJournalIndex: vi.fn().mockResolvedValue(null),
+      getSessionIndex: vi.fn().mockResolvedValue(sessionIndex),
+      getSegmentManifest: vi
+        .fn()
+        .mockImplementation(async (dir: string) =>
+          dir === 'segments/0000' ? segment0Manifest : null,
+        ),
+      loadSegmentSnapshot: vi.fn().mockResolvedValue(makeSnapshot()),
+      loadGlobalEventsIndex: vi.fn().mockResolvedValue(null),
+      readChunk: vi.fn().mockResolvedValue([]),
+      readLogChunk: vi.fn().mockResolvedValue([]),
+      readCheckpoint: vi.fn().mockResolvedValue(null),
+    };
+
+    const controller = new HistoryController();
+    await controller.load(source, vi.fn() as any);
+
+    const adapter = (controller as any).adapter;
+    const clearSpy = vi.spyOn(adapter, 'clearTimeSeriesData');
+    const player = (controller as any).player;
+    const loadSpy = vi.spyOn(player, 'load');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const manifestBefore = (controller as any).manifest;
+    const segmentDirBefore = (controller as any).segmentDir;
+
+    await controller.seek(20_000_000);
+
+    expect(clearSpy).not.toHaveBeenCalled();
+    expect(loadSpy).not.toHaveBeenCalled();
+    expect((controller as any).manifest).toBe(manifestBefore);
+    expect((controller as any).segmentDir).toBe(segmentDirBefore);
+    expect(warnSpy).toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+});

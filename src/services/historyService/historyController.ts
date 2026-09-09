@@ -227,6 +227,10 @@ export class HistoryController {
       appendLogs: this.appendLogs,
     });
     if (switchResult.stale) return;
+    if (!switchResult.changed && switchResult.failed) {
+      console.warn('[HistoryController] seek: segment switch failed, aborting');
+      return;
+    }
     if (switchResult.changed) {
       manifest = switchResult.manifest;
       loader = switchResult.loader;
