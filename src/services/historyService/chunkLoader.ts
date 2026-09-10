@@ -43,7 +43,13 @@ export class ChunkLoader {
     }
 
     const { fromUs, toUs } = getEventChunkRange(this.manifest, position);
-    const events = await this.reader.readChunk(position, this.segmentDir);
+    let events: HistoryEvent[];
+    try {
+      events = await this.reader.readChunk(position, this.segmentDir);
+    } catch (error) {
+      console.warn('[ChunkLoader] loadEventChunk failed:', error);
+      events = [];
+    }
     const chunk: EventChunk = { index: position, fromUs, toUs, events };
 
     this.eventCache.set(position, chunk);
@@ -55,11 +61,7 @@ export class ChunkLoader {
   async preloadEventChunk(position: number): Promise<void> {
     if (this.eventCache.has(position)) return;
     if (position < 0 || position >= this.manifest.chunkCount) return;
-    try {
-      await this.loadEventChunk(position);
-    } catch (error) {
-      console.warn('[ChunkLoader] preloadEventChunk failed:', error);
-    }
+    await this.loadEventChunk(position);
   }
 
   async loadCheckpoint(cpFile: string): Promise<HistoryCheckpoint | null> {
@@ -89,7 +91,13 @@ export class ChunkLoader {
     if (cached) return cached;
 
     const logIndex = chunkIndexFromPath(entry.file);
-    const logs = await this.reader.readLogChunk(logIndex, this.segmentDir);
+    let logs: LogEvent[];
+    try {
+      logs = await this.reader.readLogChunk(logIndex, this.segmentDir);
+    } catch (error) {
+      console.warn('[ChunkLoader] loadLogChunk failed:', error);
+      logs = [];
+    }
     const chunk: LogChunk = { fromUs: entry.fromUs, toUs: entry.toUs, logs };
 
     this.logCache.set(entry.file, chunk);
