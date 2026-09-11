@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import EventJournal from '../timeline/EventJournal';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import EventJournalRow from '../timeline/EventJournalRow';
 import type { TimelineEvent } from '@/services/historyService/types';
 
 describe('EventJournal time formatting', () => {
@@ -27,7 +28,16 @@ describe('EventJournal time formatting', () => {
     ];
 
     render(
-      <EventJournal events={events} sessionStartUs={0} onSeek={vi.fn()} />,
+      <TooltipProvider>
+        {events.map((event) => (
+          <EventJournalRow
+            key={event.id}
+            event={event}
+            sessionStartUs={0}
+            onSeek={vi.fn()}
+          />
+        ))}
+      </TooltipProvider>,
     );
 
     const labels = screen.getAllByText('00:01.16');

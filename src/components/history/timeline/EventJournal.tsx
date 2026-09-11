@@ -1,13 +1,7 @@
-import { memo } from 'react';
-import { OverlayScrollbarsComponent } from 'overlayscrollbars-react';
-import { formatCompactTime } from '@/utils/formatting/time';
-import { EVENT_TYPE_COLOR } from './utils/eventTypeColors';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from '@/components/ui/tooltip';
+import { memo, useCallback } from 'react';
+import { Virtuoso } from 'react-virtuoso';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import EventJournalRow from './EventJournalRow';
 import type { TimelineEvent } from '@/services/historyService/types';
 
 interface EventJournalProps {
@@ -18,6 +12,17 @@ interface EventJournalProps {
 
 const EventJournal = memo(
   ({ events, sessionStartUs, onSeek }: EventJournalProps) => {
+    const renderEvent = useCallback(
+      (_index: number, event: TimelineEvent) => (
+        <EventJournalRow
+          event={event}
+          sessionStartUs={sessionStartUs}
+          onSeek={onSeek}
+        />
+      ),
+      [sessionStartUs, onSeek],
+    );
+
     if (events.length === 0) return null;
 
     return (
@@ -26,41 +31,16 @@ const EventJournal = memo(
           Event Journal
         </div>
         <TooltipProvider delayDuration={200}>
-          <OverlayScrollbarsComponent
-            element="div"
-            options={{ scrollbars: { autoHide: 'leave', autoHideDelay: 200 } }}
-            className="flex-1 min-h-0"
-          >
-            {events.map((event) => {
-              const color = EVENT_TYPE_COLOR[event.type];
-              return (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-2 px-3 py-0.5 hover:bg-white/5"
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() =>
-                          onSeek(sessionStartUs + event.sessionTimeUs)
-                        }
-                        className="text-monitor-meta font-mono tabular-nums text-xs shrink-0 hover:brightness-125"
-                      >
-                        {formatCompactTime(event.sessionTimeUs, true)}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      Absolute: {formatCompactTime(event.absoluteTimeUs, true)}
-                    </TooltipContent>
-                  </Tooltip>
-                  <span className={`${color} w-3 h-0.5 rounded-sm shrink-0`} />
-                  <span className="text-xs text-gray-300 truncate">
-                    {event.title}
-                  </span>
-                </div>
-              );
-            })}
-          </OverlayScrollbarsComponent>
+          <div className="flex-1 min-h-0">
+            <Virtuoso
+              data={events}
+              computeItemKey={(_index, event) => event.id}
+              itemContent={renderEvent}
+              style={{ height: '100%' }}
+              overscan={20}
+              increaseViewportBy={200}
+            />
+          </div>
         </TooltipProvider>
       </div>
     );

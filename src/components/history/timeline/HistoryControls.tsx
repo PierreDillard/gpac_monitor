@@ -59,7 +59,7 @@ const HistoryControls = () => {
       onPanelResize={setPanelWidth}
       activeFilter={activeFilter}
       onFilterChange={setActiveFilter}
-      filteredEvents={filteredEvents}
+      journalEvents={filteredEvents}
       sessionStartUs={sessionStartUs}
       currentTimeUs={currentTimeUs}
       durationUs={durationUs}
