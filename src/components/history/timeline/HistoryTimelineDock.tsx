@@ -26,7 +26,7 @@ interface HistoryTimelineDockProps {
   onPanelResize: (width: number) => void;
   activeFilter: TimelineFilter;
   onFilterChange: (filter: TimelineFilter) => void;
-  filteredEvents: TimelineEvent[];
+  journalEvents: TimelineEvent[];
   sessionStartUs: number;
   currentTimeUs: number;
   durationUs: number;
@@ -52,7 +52,7 @@ const HistoryTimelineDock = ({
   onPanelResize,
   activeFilter,
   onFilterChange,
-  filteredEvents,
+  journalEvents,
   sessionStartUs,
   currentTimeUs,
   durationUs,
@@ -113,7 +113,7 @@ const HistoryTimelineDock = ({
             </div>
             {dockHeight > TIMELINE_DOCK_HEIGHT_PX && (
               <EventJournal
-                events={filteredEvents}
+                events={journalEvents}
                 sessionStartUs={sessionStartUs}
                 onSeek={onSeek}
               />
