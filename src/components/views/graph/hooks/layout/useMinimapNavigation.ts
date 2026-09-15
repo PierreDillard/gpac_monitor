@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, XYPosition } from '@xyflow/react';
 
 /**
  *
@@ -7,36 +7,18 @@ import { useReactFlow } from '@xyflow/react';
  *
  */
 export const useMinimapNavigation = () => {
-  const { setViewport, getZoom } = useReactFlow();
+  const { setViewport, getZoom, setCenter } = useReactFlow();
 
   const handleMiniMapClick = useCallback(
-    (
-      event: React.MouseEvent<Element, MouseEvent>,
-      position: { x: number; y: number },
-    ) => {
-      // Cast currentTarget to SVGSVGElement for correct typing
-      const svgElement = event.currentTarget as SVGSVGElement;
-      const svgRect = svgElement.getBoundingClientRect();
-
-      // Use provided position from MiniMap
-      const relativeX = position.x;
-      const relativeY = position.y;
-
-      // Convert to viewport coordinates
-      const minimapScale = 150; // Adjust based on minimap size
-      const newX = -relativeX * minimapScale + svgRect.width / 2;
-      const newY = -relativeY * minimapScale + svgRect.height / 2;
-
-      setViewport(
-        {
-          x: newX,
-          y: newY,
-          zoom: getZoom(),
-        },
-        { duration: 200 }, // Smooth transition
-      );
+    (_event: React.MouseEvent<Element, MouseEvent>, position: XYPosition) => {
+      // `position` is already in flow coordinates (confirmed at runtime),
+      // so let React Flow own the viewport math instead of reimplementing it.
+      void setCenter(position.x, position.y, {
+        zoom: getZoom(),
+        duration: 300,
+      });
     },
-    [setViewport, getZoom],
+    [setCenter, getZoom],
   );
 
   const handleMiniMapDrag = useCallback(
