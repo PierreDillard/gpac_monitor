@@ -64,12 +64,18 @@ export function clusterVisibleEvents(
     if (run.length === 1) {
       items.push({ kind: 'event', ...run[0] });
     } else {
-      const timestamps = run.map((entry) => entry.event.sessionTimeUs);
+      let fromUs = run[0].event.sessionTimeUs;
+      let toUs = fromUs;
+      for (const entry of run) {
+        if (entry.event.sessionTimeUs < fromUs)
+          fromUs = entry.event.sessionTimeUs;
+        if (entry.event.sessionTimeUs > toUs) toUs = entry.event.sessionTimeUs;
+      }
       items.push({
         kind: 'cluster',
         count: run.length,
-        fromUs: Math.min(...timestamps),
-        toUs: Math.max(...timestamps),
+        fromUs,
+        toUs,
         positionPercent:
           (run[0].positionPercent + run[run.length - 1].positionPercent) / 2,
       });

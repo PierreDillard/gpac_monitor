@@ -78,4 +78,24 @@ describe('clusterVisibleEvents', () => {
     const items = clusterVisibleEvents(visible, 5);
     expect(items.map((item) => item.kind)).toEqual(['event', 'event']);
   });
+
+  it('does not throw on a run past the JS call-argument limit (RangeError regression)', () => {
+    // Spread-based Math.min/max(...timestamps) hits V8's ~125k argument ceiling.
+    const count = 200_000;
+    const visible: PositionedEvent[] = Array.from(
+      { length: count },
+      (_, i) => ({
+        event: event(`e${i}`, i * 100),
+        positionPercent: i * 0.0001, // stays well under minGapPercent for every consecutive pair
+      }),
+    );
+    const items = clusterVisibleEvents(visible, 5);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: 'cluster',
+      count,
+      fromUs: 0,
+      toUs: (count - 1) * 100,
+    });
+  });
 });
