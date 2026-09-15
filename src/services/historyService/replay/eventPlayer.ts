@@ -136,13 +136,7 @@ export class EventPlayer {
   }
 
   private tick() {
-    if (this.state !== 'playing' || !this.onEvent) {
-      console.warn('[tick:STOP]', {
-        state: this.state,
-        hasOnEvent: !!this.onEvent,
-      });
-      return;
-    }
+    if (this.state !== 'playing' || !this.onEvent) return;
 
     const now = this.currentTimeUs();
 

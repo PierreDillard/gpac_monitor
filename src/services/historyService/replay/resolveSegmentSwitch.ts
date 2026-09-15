@@ -11,7 +11,7 @@ import type {
   PlayerInterface,
 } from './chunkPreloadController';
 import { SegmentSwitchController } from './segmentSwitchController';
-import { findSegmentForTimestamp } from '../sessionIndexParser';
+import { findSegmentForTimestamp, hasNextSegment } from '../sessionIndexParser';
 
 export type SegmentSwitchOutcome =
   | { stale: true }
@@ -68,6 +68,7 @@ export async function resolveSegmentSwitch(params: {
     switched.manifest,
     player,
     appendLogs,
+    hasNextSegment(sessionIndex, switched.segmentDir),
   );
 
   return {

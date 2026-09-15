@@ -104,6 +104,18 @@ export function findPreviousSegmentDir(
   return getSegmentDir(sessionIndex.segments[currentPosition - 1]);
 }
 
+export function hasNextSegment(
+  sessionIndex: HistorySessionIndex,
+  segmentDir: string,
+): boolean {
+  const currentPosition = sessionIndex.segments.findIndex(
+    (segment) => getSegmentDir(segment) === segmentDir,
+  );
+  return (
+    currentPosition >= 0 && currentPosition < sessionIndex.segments.length - 1
+  );
+}
+
 export function isSegmentDone(
   sessionIndex: HistorySessionIndex,
   segmentPosition: number,

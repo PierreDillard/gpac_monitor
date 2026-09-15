@@ -32,6 +32,7 @@ import {
   findPreviousSegmentDir,
   getSegmentDir,
   getSegmentToUs,
+  hasNextSegment,
 } from './sessionIndexParser';
 
 /**
@@ -184,6 +185,9 @@ export class HistoryController {
       manifest,
       this.player,
       this.appendLogs,
+      sessionIndex && segmentDir
+        ? hasNextSegment(sessionIndex, segmentDir)
+        : false,
     );
 
     const snapshot = segmentDir
