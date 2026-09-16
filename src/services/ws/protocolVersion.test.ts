@@ -3,6 +3,13 @@ import {
   checkProtocolVersionMismatch,
   EXPECTED_WS_PROTOCOL_VERSION,
 } from './protocolVersion';
+import { WS_PROTOCOL_VERSION } from '../../../server/config/live.config.js';
+
+describe('WS protocol version constants', () => {
+  it('moves in lockstep with the server constant', () => {
+    expect(EXPECTED_WS_PROTOCOL_VERSION).toBe(WS_PROTOCOL_VERSION);
+  });
+});
 
 describe('checkProtocolVersionMismatch', () => {
   it('flags a missing version as server_too_old (server.js predates the handshake)', () => {
