@@ -29,6 +29,7 @@ import { ChunkLoader } from './chunkLoader';
 import type { EventChunk } from './chunkLoader';
 import { findEventChunkIndex, findNearestCheckpoint } from './manifestParser';
 import {
+  findNextSegmentDir,
   findPreviousSegmentDir,
   getSegmentDir,
   getSegmentToUs,
@@ -55,9 +56,73 @@ export class HistoryController {
   private loadedChunkIndex: number | null = null;
   private preloader: ChunkPreloadController | null = null;
   private timelineEvents: TimelineEvent[] = [];
+  private userListener: PlayerListener | null = null;
+
+  constructor() {
+    this.player.setListener(this.handlePlayerStateChange);
+  }
 
   setListener(listener: PlayerListener) {
-    this.player.setListener(listener);
+    this.userListener = listener;
+  }
+
+  private handlePlayerStateChange = (
+    state: PlayerState,
+    timeUs: number,
+  ): void => {
+    this.userListener?.(state, timeUs);
+    if (state === 'waiting') {
+      void this.tryRolloverToNextSegment();
+    }
+  };
+
+  /**
+   * Forward playback hit the end of the current segment's last loaded chunk
+   * (task 15 E2). Swap loader/preloader to segment N+1 and append its first
+   * chunk — adapter/baseState untouched, only a true seek re-hydrates.
+   */
+  private async tryRolloverToNextSegment(): Promise<void> {
+    const currentPreloader = this.preloader;
+    if (!currentPreloader || !currentPreloader.isAtSegmentEnd()) return;
+    if (!this.sessionIndex || !this.segmentDir || !this.source) return;
+
+    const nextSegmentDir = findNextSegmentDir(
+      this.sessionIndex,
+      this.segmentDir,
+    );
+    if (!nextSegmentDir) return;
+
+    const versionBeforeSwitch = currentPreloader.getVersion();
+    const manifest = await this.source.getSegmentManifest(nextSegmentDir);
+    if (versionBeforeSwitch !== currentPreloader.getVersion() || !manifest)
+      return;
+
+    const loader = new ChunkLoader(this.source, manifest, nextSegmentDir);
+    const firstChunk = await loader.loadEventChunk(0);
+    if (versionBeforeSwitch !== currentPreloader.getVersion()) return;
+
+    const newPreloader = new ChunkPreloadController(
+      loader,
+      manifest,
+      this.player,
+      this.appendLogs,
+      hasNextSegment(this.sessionIndex, nextSegmentDir),
+    );
+    const newPreloaderVersion = newPreloader.getVersion();
+
+    this.manifest = manifest;
+    this.loader = loader;
+    this.preloader = newPreloader;
+    this.segmentDir = nextSegmentDir;
+    this.loadedChunkIndex = 0;
+
+    this.player.append(firstChunk.events);
+    void this.appendLogs(
+      firstChunk,
+      () => newPreloader.getVersion() !== newPreloaderVersion,
+    );
+    newPreloader.reset(0);
+    newPreloader.ensureOneChunkAhead();
   }
 
   private handleReplayEvent = (event: HistoryEvent): void => {

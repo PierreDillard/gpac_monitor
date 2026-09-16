@@ -104,6 +104,21 @@ export function findPreviousSegmentDir(
   return getSegmentDir(sessionIndex.segments[currentPosition - 1]);
 }
 
+export function findNextSegmentDir(
+  sessionIndex: HistorySessionIndex,
+  currentSegmentDir: string,
+): string | undefined {
+  const currentPosition = sessionIndex.segments.findIndex(
+    (segment) => getSegmentDir(segment) === currentSegmentDir,
+  );
+  if (
+    currentPosition === -1 ||
+    currentPosition >= sessionIndex.segments.length - 1
+  )
+    return undefined;
+  return getSegmentDir(sessionIndex.segments[currentPosition + 1]);
+}
+
 export function hasNextSegment(
   sessionIndex: HistorySessionIndex,
   segmentDir: string,

@@ -44,6 +44,11 @@ export class ChunkPreloadController {
     return this.version;
   }
 
+  /** True once the last chunk of this segment has been appended — not mid-preload. */
+  isAtSegmentEnd(): boolean {
+    return this.lastAppendedChunkIndex + 1 >= this.manifest.chunkCount;
+  }
+
   updatePlayingChunkIndex(currentTimeUs: number): void {
     this.playingChunkIndex = findEventChunkIndex(this.manifest, currentTimeUs);
   }
