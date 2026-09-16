@@ -1,0 +1,115 @@
+name: release dry run
+run-name: release dry run
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install and Build
+        run: |
+          pnpm install
+          pnpm build
+
+      - name: Run tests
+        run: pnpm exec vitest run
+
+      - name: Verify build identity
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          DATE=$(date -u +%Y-%m-%d)
+          grep -q "\"$SHA\"" release/index.html || { echo "sha $SHA absent du bundle"; exit 1; }
+          grep -q "$DATE" release/index.html || { echo "date $DATE absente du bundle"; exit 1; }
+
+      - name: Checkout GPAC Repo
+        uses: actions/checkout@v4
+        with:
+          repository: gpac/gpac
+          token: ${{ github.token }}
+          path: gpac
+
+      - name: Copy and commit, without pushing
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          BRANCH_NAME="gpac-monitor-$SHORT_SHA"
+          TARGET_DIR="share/scripts/rmt"
+          REPORT="$GITHUB_WORKSPACE/dry-run-report.txt"
+
+          # Same sequence as build_and_gpac_pr.yml, minus the push and the PR
+          cd gpac
+          mkdir -p "$TARGET_DIR"
+          AUTHOR_NAME="${{ github.event.head_commit.author.name }}"
+          AUTHOR_EMAIL="${{ github.event.head_commit.author.email }}"
+
+          if [ -z "$AUTHOR_NAME" ]; then AUTHOR_NAME="${{ github.actor }}"; fi
+          if [ -z "$AUTHOR_EMAIL" ]; then
+            AUTHOR_EMAIL="${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          fi
+
+          git config user.name "$AUTHOR_NAME"
+          git config user.email "$AUTHOR_EMAIL"
+          git checkout -b $BRANCH_NAME
+
+          cp -r ../release/* "$TARGET_DIR"/
+
+          {
+            echo "=== would push branch ==="
+            echo "$BRANCH_NAME"
+            echo
+            echo "=== would open PR ==="
+            echo "title: gpac_monitor: update $SHORT_SHA"
+            echo "base:  master"
+            echo "repo:  gpac/gpac"
+            echo
+            echo "=== author resolved to ==="
+            echo "$AUTHOR_NAME <$AUTHOR_EMAIL>"
+            echo
+            echo "=== files shipped from release/ ==="
+            ls -l ../release/
+            echo
+            echo "=== target dir after copy ==="
+            ls -l "$TARGET_DIR"
+            echo
+          } > "$REPORT"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add "$TARGET_DIR"/*
+            git commit -m "gpac_monitor: update to gpac_monitor@$SHORT_SHA" \
+            -m "$COMMIT_MSG" \
+            -m "[noCI]"
+            {
+              echo "=== diff detected, commit created locally ==="
+              git show --stat HEAD
+            } >> "$REPORT"
+          else
+            echo "=== no changes detected, the real run would skip the PR ===" >> "$REPORT"
+          fi
+
+          cat "$REPORT"
+
+      - name: Upload build and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dry-run
+          path: |
+            release/
+            dry-run-report.txt
