@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { Sys as sys } from 'gpaccore';
 import { buildMonitorConfigPayload } from './buildMonitorConfigPayload.js';
 import { UPDATE_INTERVALS, LOG_RETENTION, WS_PROTOCOL_VERSION } from './config.js';
+import monitorConfigFixture from '../../src/services/ws/__tests__/fixtures/monitor_config.json';
 
 describe('buildMonitorConfigPayload', () => {
   afterEach(() => {
@@ -36,6 +37,14 @@ describe('buildMonitorConfigPayload', () => {
     const payload = buildMonitorConfigPayload();
 
     expect(payload.gpac_version).toBeNull();
+  });
+
+  it('matches the shared monitor_config fixture consumed by the front (src/services/ws/__tests__/fixtures/monitor_config.json)', () => {
+    sys.version_full = monitorConfigFixture.gpac_version;
+
+    const payload = buildMonitorConfigPayload();
+
+    expect(payload).toEqual(monitorConfigFixture);
   });
 
   it('keeps the monitor_config contract shape stable — a diff here means bump WS_PROTOCOL_VERSION on both sides', () => {

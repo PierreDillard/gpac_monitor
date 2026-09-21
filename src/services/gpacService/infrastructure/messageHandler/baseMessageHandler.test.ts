@@ -3,6 +3,13 @@ import { BaseMessageHandler } from './baseMessageHandler';
 import { MessageHandlerCallbacks, MessageHandlerDependencies } from './types';
 import { GpacNotificationHandlers } from '../../types';
 import { EXPECTED_WS_PROTOCOL_VERSION } from '@/services/ws/protocolVersion';
+import type { MonitorConfigMessage } from '@/services/ws/types';
+import monitorConfigFixture from '@/services/ws/__tests__/fixtures/monitor_config.json';
+
+const typedMonitorConfigFixture: MonitorConfigMessage = {
+  ...monitorConfigFixture,
+  message: 'monitor_config',
+};
 
 function createMockCallbacks(): MessageHandlerCallbacks {
   return {
@@ -183,18 +190,15 @@ describe('BaseMessageHandler', () => {
         notificationHandlers,
       );
 
-      simulateMessage(handlerWithNotifications, {
-        message: 'monitor_config',
-        intervals: { SESSION_STATS: 1000, FILTER_STATS: 1000, CPU_STATS: 500 },
-        ws_protocol_version: EXPECTED_WS_PROTOCOL_VERSION,
-        gpac_version: '26.03-DEV-rev3',
-      });
+      expect(typedMonitorConfigFixture.ws_protocol_version).toBe(
+        EXPECTED_WS_PROTOCOL_VERSION,
+      );
 
-      expect(callbacks.onSetMonitorConfig).toHaveBeenCalledWith({
-        SESSION_STATS: 1000,
-        FILTER_STATS: 1000,
-        CPU_STATS: 500,
-      });
+      simulateMessage(handlerWithNotifications, typedMonitorConfigFixture);
+
+      expect(callbacks.onSetMonitorConfig).toHaveBeenCalledWith(
+        typedMonitorConfigFixture.intervals,
+      );
       expect(
         notificationHandlers.onProtocolVersionMismatch,
       ).not.toHaveBeenCalled();
@@ -268,6 +272,22 @@ describe('BaseMessageHandler', () => {
           receivedVersion: EXPECTED_WS_PROTOCOL_VERSION + 1,
         }),
       );
+    });
+  });
+
+  describe('unknown message type', () => {
+    it('warns without throwing when the server sends a message type the front does not know yet', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      expect(() =>
+        simulateMessage(handler, { message: 'future_message_type' }),
+      ).not.toThrow();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('future_message_type'),
+      );
+
+      warnSpy.mockRestore();
     });
   });
 

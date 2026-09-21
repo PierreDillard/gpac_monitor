@@ -195,9 +195,10 @@ export class BaseMessageHandler {
         break;
       default: {
         const exhaustiveCheck: never = data;
-        throw new Error(
+        console.warn(
           `Unhandled message type: ${(exhaustiveCheck as IncomingWsMessage).message}`,
         );
+        break;
       }
     }
 
