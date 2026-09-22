@@ -23,6 +23,7 @@ function formatProtocolVersionMismatchToast(
           ? `This monitor page expects protocol v${mismatch.expectedVersion}. Your GPAC server${gpacVersionSuffix} does not recognize it. Update GPAC to restore full compatibility.`
           : `This monitor page expects protocol v${mismatch.expectedVersion}, your GPAC server announces v${mismatch.receivedVersion}${gpacVersionSuffix}. Update GPAC to restore full compatibility.`,
       variant: 'destructive',
+      duration: Infinity,
     };
   }
 
@@ -30,6 +31,7 @@ function formatProtocolVersionMismatchToast(
     title: 'Monitor page out of date',
     description: `Your GPAC server announces protocol v${mismatch.receivedVersion}${gpacVersionSuffix}, this page only knows v${mismatch.expectedVersion}. Reload the page to get the latest version.`,
     variant: 'destructive',
+    duration: Infinity,
   };
 }
 

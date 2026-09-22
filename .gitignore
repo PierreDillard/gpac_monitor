@@ -35,4 +35,6 @@ docs
 tasks
 dash
 server/scripts
+server/rmt-log/
+server/media/
 

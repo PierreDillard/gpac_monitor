@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Node } from '@xyflow/react';
 import type { ToasterToast } from '@/shared/hooks/ui/useToast';
 
@@ -21,16 +21,22 @@ export const useGraphNotifications = ({
   toast,
   disabled = false,
 }: UseGraphNotificationsProps) => {
-  // Notification for successful graph loading
+  // Notification for successful graph loading (once per session — the graph
+  // can keep growing afterwards, e.g. a DASH pipeline spawning muxers)
+  const hasNotifiedGraphLoadRef = useRef(false);
   useEffect(() => {
     if (disabled) return;
-    if (nodes.length > 0 && !isLoading) {
-      toast({
-        title: 'Graph loaded',
-        description: `${nodes.length} node${nodes.length !== 1 ? 's' : ''} have been loaded`,
-        variant: 'default',
-      });
+    if (nodes.length === 0) {
+      hasNotifiedGraphLoadRef.current = false;
+      return;
     }
+    if (isLoading || hasNotifiedGraphLoadRef.current) return;
+    hasNotifiedGraphLoadRef.current = true;
+    toast({
+      title: 'Graph loaded',
+      description: `${nodes.length} node${nodes.length !== 1 ? 's' : ''} have been loaded`,
+      variant: 'default',
+    });
   }, [nodes.length, isLoading, toast, disabled]);
 
   // Notification for errors
