@@ -20,17 +20,19 @@ export const UplotChart = memo(
     const chartRef = useRef<uPlot | null>(null);
     const onCreateRef = useRef(onCreate);
     const onDestroyRef = useRef(onDestroy);
+    const dataRef = useRef(data);
 
     // Keep refs up to date
     useEffect(() => {
       onCreateRef.current = onCreate;
       onDestroyRef.current = onDestroy;
+      dataRef.current = data;
     });
 
     useEffect(() => {
       if (!containerRef.current) return;
 
-      const chart = new uPlot(options, data, containerRef.current);
+      const chart = new uPlot(options, dataRef.current, containerRef.current);
       chartRef.current = chart;
       onCreateRef.current?.(chart);
 
