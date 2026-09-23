@@ -33,7 +33,7 @@ export function useCPUStatsLive(
 
   useEffect(() => {
     if (!enabled || !isReady) {
-      if (stats.length > 0) setStats([]);
+      setStats((prev) => (prev.length > 0 ? [] : prev));
       return;
     }
 
