@@ -13,13 +13,10 @@ export function useFilterStatsLive(
   const [stats, setStats] = useState<MonitoredFilterStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpdate = useCallback(
-    (newStats: MonitoredFilterStats) => {
-      setStats((prev) => (filterStatsEqual(prev, newStats) ? prev : newStats));
-      setIsLoading(false);
-    },
-    [filterId],
-  );
+  const handleUpdate = useCallback((newStats: MonitoredFilterStats) => {
+    setStats((prev) => (filterStatsEqual(prev, newStats) ? prev : newStats));
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     if (filterId === undefined || !enabled || !gpacService.isConnected()) {
@@ -37,7 +34,11 @@ export function useFilterStatsLive(
     const setup = async () => {
       try {
         const unsub = await gpacService.subscribe(
-          { type: SubscriptionType.FILTER_STATS, filterIdx: filterId, interval },
+          {
+            type: SubscriptionType.FILTER_STATS,
+            filterIdx: filterId,
+            interval,
+          },
           (result) => {
             if (result.data && isMounted) {
               handleUpdate(result.data as MonitoredFilterStats);

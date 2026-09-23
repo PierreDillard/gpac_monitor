@@ -103,16 +103,18 @@ class ResizeManager extends Subscribable<ResizeData, ResizeNotification> {
 // Global instance
 export const resizeManager = new ResizeManager();
 
+const observeElement = (element: Element, id?: string) =>
+  resizeManager.observeElement(element, id);
+
+const unobserveElement = (element: Element) =>
+  resizeManager.unobserveElement(element);
+
+const subscribe = (
+  callback: (data: ResizeData, type?: ResizeNotification[]) => void,
+  debounce?: number,
+) => resizeManager.subscribeToResize(callback, debounce);
+
 // Hook for React components
 export const useResizeOptimization = () => {
-  return {
-    observeElement: (element: Element, id?: string) =>
-      resizeManager.observeElement(element, id),
-    unobserveElement: (element: Element) =>
-      resizeManager.unobserveElement(element),
-    subscribe: (
-      callback: (data: ResizeData, type?: ResizeNotification[]) => void,
-      debounce?: number,
-    ) => resizeManager.subscribeToResize(callback, debounce),
-  };
+  return { observeElement, unobserveElement, subscribe };
 };

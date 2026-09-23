@@ -44,8 +44,11 @@ export const CpuMemoryChartUplot = memo(
       calculateMemoryYMax(currentMemoryMB),
     );
 
+    const currentMemoryMBRef = useRef(currentMemoryMB);
+    currentMemoryMBRef.current = currentMemoryMB;
+
     useEffect(() => {
-      setStableYMax(calculateMemoryYMax(currentMemoryMB));
+      setStableYMax(calculateMemoryYMax(currentMemoryMBRef.current));
     }, [isHistory]);
 
     useEffect(() => {
