@@ -73,7 +73,16 @@ export const useOptimizedResize = (options: UseOptimizedResizeOptions = {}) => {
         }
       }
     },
-    [onResize, onResizeStart, onResizeEnd, throttle],
+    [
+      onResize,
+      onResizeStart,
+      onResizeEnd,
+      throttle,
+      useTransform,
+      startTransform,
+      updateTransform,
+      commitResize,
+    ],
   );
 
   useEffect(() => {
