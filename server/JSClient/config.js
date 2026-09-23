@@ -21,7 +21,7 @@ const FILTER_SUBSCRIPTION_FIELDS = [
     'status', 'bytes_done', 'bytes_sent', 'pck_done', 'pck_sent', 'time', 'nb_ipid', 'nb_opid', 'errors', 'current_errors','last_task_time'
 ];
 
-export { UPDATE_INTERVALS, LOG_RETENTION } from '../config/live.config.js';
+export { UPDATE_INTERVALS, LOG_RETENTION, WS_PROTOCOL_VERSION } from '../config/live.config.js';
 
 export {
     DEFAULT_FILTER_FIELDS,

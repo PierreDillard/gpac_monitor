@@ -1,0 +1,20 @@
+{
+  "message": "monitor_config",
+  "intervals": {
+    "SESSION_STATS": 1000,
+    "FILTER_STATS": 1000,
+    "CPU_STATS": 500
+  },
+  "logRetention": {
+    "maxHistorySize": 500,
+    "maxHistorySizeVerbose": 2000,
+    "keepRatio": {
+      "error": 1.0,
+      "warning": 0.8,
+      "info": 0.2,
+      "debug": 0.05
+    }
+  },
+  "ws_protocol_version": 1,
+  "gpac_version": "26.03-DEV-rev3"
+}

@@ -98,9 +98,23 @@ export interface SessionEndMessage {
   message: 'session_end';
 }
 
+export interface LogRetentionConfig {
+  maxHistorySize: number;
+  maxHistorySizeVerbose: number;
+  keepRatio: {
+    error: number;
+    warning: number;
+    info: number;
+    debug: number;
+  };
+}
+
 export interface MonitorConfigMessage {
   message: 'monitor_config';
   intervals: MonitorIntervals;
+  logRetention?: LogRetentionConfig;
+  ws_protocol_version?: number;
+  gpac_version?: string | null;
 }
 
 export interface NotificationMessage {

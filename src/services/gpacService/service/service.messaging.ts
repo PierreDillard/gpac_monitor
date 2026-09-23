@@ -58,5 +58,6 @@ export const messagingMethods = {
   ): void {
     state.notificationHandlers = handlers;
     state.connectionManager.setNotificationHandlers(handlers);
+    state.messageHandler.setNotificationHandlers(handlers);
   },
 };

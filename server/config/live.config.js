@@ -4,6 +4,10 @@ const UPDATE_INTERVALS = {
     CPU_STATS: 500,
 };
 
+// Bump on any front<->server CONTRACT change (new message, new field the front relies on,
+// changed semantics)
+const WS_PROTOCOL_VERSION = 1;
+
 // Log retention strategy: preserve errors (100%), prioritize warnings (80%), sample info/debug (20%/5%)
 const LOG_RETENTION = {
     maxHistorySize: 500,
@@ -19,4 +23,5 @@ const LOG_RETENTION = {
 export {
     UPDATE_INTERVALS,
     LOG_RETENTION,
+    WS_PROTOCOL_VERSION,
 };
