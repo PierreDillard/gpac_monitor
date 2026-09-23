@@ -28,6 +28,11 @@ export const useOptimizedResize = (options: UseOptimizedResizeOptions = {}) => {
     useTransformResize();
   const isResizingRef = useRef(false);
   const initialSizeRef = useRef<{ width: number; height: number } | null>(null);
+  const callbacksRef = useRef({ onResize, onResizeStart, onResizeEnd });
+
+  useEffect(() => {
+    callbacksRef.current = { onResize, onResizeStart, onResizeEnd };
+  });
 
   const handleResize = useCallback(
     (
@@ -42,10 +47,11 @@ export const useOptimizedResize = (options: UseOptimizedResizeOptions = {}) => {
           initialSizeRef.current = { width: data.width, height: data.height };
           startTransform(elementRef.current);
         }
-        onResizeStart?.();
+        callbacksRef.current.onResizeStart?.();
       }
 
       if (types.includes('resize_update')) {
+        const { onResize } = callbacksRef.current;
         if (useTransform && elementRef.current && initialSizeRef.current) {
           // Use GPU transform instead of DOM resize
           const scaleX = data.width / initialSizeRef.current.width;
@@ -67,22 +73,14 @@ export const useOptimizedResize = (options: UseOptimizedResizeOptions = {}) => {
           commitResize(elementRef.current, data.width, data.height);
           initialSizeRef.current = null;
         }
+        const { onResize, onResizeEnd } = callbacksRef.current;
         onResizeEnd?.();
         if (onResize && !useTransform) {
           onResize(data.width, data.height);
         }
       }
     },
-    [
-      onResize,
-      onResizeStart,
-      onResizeEnd,
-      throttle,
-      useTransform,
-      startTransform,
-      updateTransform,
-      commitResize,
-    ],
+    [throttle, useTransform, startTransform, updateTransform, commitResize],
   );
 
   useEffect(() => {
