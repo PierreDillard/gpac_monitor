@@ -1,0 +1,51 @@
+name: backend integration
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-gpac:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle backend
+        run: pnpm exec esbuild server/server.js --bundle --outfile=ci/server.js --format=esm --external:gpaccore --external:std --external:os
+
+      - name: Start GPAC
+        run: |
+          docker run -d --name gpac --network host -v "$PWD/ci:/srv:ro" --entrypoint gpac gpac/ubuntu:latest \
+            -rmt -rmt-port=6390 -rmt-localhost -rmt-path=/srv/server.js -logs=rmtws@info \
+            avgen reframer:rt=on inspect:allp
+
+      - name: Query filter graph
+        run: timeout 20 node server/tests/integration/getAllFilters.mjs
+
+      - name: GPAC diagnostics
+        if: always()
+        run: |
+          docker run --rm --entrypoint gpac gpac/ubuntu:latest -version || true
+          docker logs gpac || true
+          docker rm -f gpac || true
