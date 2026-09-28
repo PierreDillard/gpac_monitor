@@ -5,6 +5,7 @@ import { GpacNotificationHandlers } from '../../types';
 import { EXPECTED_WS_PROTOCOL_VERSION } from '@/services/ws/protocolVersion';
 import type { MonitorConfigMessage } from '@/services/ws/types';
 import monitorConfigFixture from '@/services/ws/__tests__/fixtures/monitor_config.json';
+import filtersFixture from '@/services/ws/__tests__/fixtures/filters.json';
 
 const typedMonitorConfigFixture: MonitorConfigMessage = {
   ...monitorConfigFixture,
@@ -179,6 +180,15 @@ describe('BaseMessageHandler', () => {
         { idx: 6, status: 'seg=7' },
         { idx: 2, status: 'fps=30' },
       ]);
+    });
+
+    it('forwards the real GPAC filters reply to the graph unchanged', () => {
+      simulateMessage(handler, filtersFixture);
+
+      expect(callbacks.onUpdateGraphData).toHaveBeenCalledWith(
+        filtersFixture.filters,
+      );
+      expect(callbacks.onFilterStatuses).toHaveBeenCalledTimes(1);
     });
   });
 

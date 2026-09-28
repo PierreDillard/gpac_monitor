@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createNodesFromFilters } from '../GraphOperations';
+import {
+  createEdgesFromFilters,
+  createNodesFromFilters,
+} from '../GraphOperations';
 import { GraphFilterData } from '@/types/domain/gpac';
+import filtersFixture from '@/services/ws/__tests__/fixtures/filters.json';
 
 function makeFilter(
   idx: number,
@@ -22,8 +26,6 @@ function makeFilter(
   };
 }
 
-// Shape of the flist DASH session that froze the graph: one demuxer fanning
-// out trackCount pids into 3 consecutive dense layers, then one sink per track
 function makeDenseLayeredGraph(trackCount: number): GraphFilterData[] {
   const opids = (count: number) =>
     Array.from({ length: count }, (_, pidIndex) => ({
@@ -93,5 +95,31 @@ describe('createNodesFromFilters — dense layered graphs', () => {
     expect(xOf('1')).toBeLessThan(xOf('2'));
     expect(xOf('2')).toBeLessThan(xOf('3'));
     expect(xOf('3')).toBeLessThan(xOf('4'));
+  });
+});
+
+describe('createEdgesFromFilters — real GPAC filters reply', () => {
+  it('links avgen → reframer → inspect by PID name, identifying filters by type', () => {
+    const filters = filtersFixture.filters as GraphFilterData[];
+    const filterByIdx = new Map(
+      filters.map((filter) => [String(filter.idx), filter]),
+    );
+    const pidIndexOf = (handle: string | null | undefined) =>
+      Number(handle?.split('-')[1]);
+
+    const links = createEdgesFromFilters(filters, []).map((edge) => {
+      const source = filterByIdx.get(edge.source);
+      const target = filterByIdx.get(edge.target);
+      const sourcePid = source?.opid[pidIndexOf(edge.sourceHandle)]?.name;
+      const targetPid = target?.ipid[pidIndexOf(edge.targetHandle)]?.name;
+      return `${source?.type}.${sourcePid} -> ${target?.type}.${targetPid}`;
+    });
+
+    expect(links.sort()).toEqual([
+      'jsf.audio -> reframer.audio',
+      'jsf.video -> reframer.video',
+      'reframer.audio -> inspect.audio',
+      'reframer.video -> inspect.video',
+    ]);
   });
 });
