@@ -1,15 +1,28 @@
 const port = 6390;
 const expectedFilters = ['avgen', 'reframer', 'inspect'];
 const connectDeadline = Date.now() + 15000;
+const backendAttachMs = 2000;
 
 function queryFilterNames() {
     return new Promise((resolve, reject) => {
         const socket = new WebSocket(`ws://127.0.0.1:${port}`);
-        socket.onerror = () => reject(new Error('connection failed'));
-        socket.onopen = () => socket.send(`json:${JSON.stringify({ message: 'get_all_filters' })}`);
+        const attachTimer = setTimeout(() => {
+            socket.onerror = null;
+            socket.close();
+            reject(new Error(`no monitor_config within ${backendAttachMs} ms`));
+        }, backendAttachMs);
+        socket.onerror = () => {
+            clearTimeout(attachTimer);
+            reject(new Error('connection failed'));
+        };
         socket.onmessage = (event) => {
             const message = JSON.parse(String(event.data));
-            if (message.message === 'monitor_config') console.log(`gpac ${message.gpac_version}`);
+            if (message.message === 'monitor_config') {
+                clearTimeout(attachTimer);
+                console.log(`gpac ${message.gpac_version}`);
+                socket.send(`json:${JSON.stringify({ message: 'get_all_filters' })}`);
+                return;
+            }
             if (message.message !== 'filters') return;
             socket.onerror = null;
             socket.close();
