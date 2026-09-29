@@ -32,7 +32,7 @@ const filtersReply = await waitFor('filters');
 const reframerFilter = filtersReply.filters.find((filter) => filter.type === 'reframer');
 if (!reframerFilter) fail('no reframer filter in graph');
 
-send('subscribe_filter', { idx: reframerFilter.idx });
+// send('subscribe_filter', { idx: reframerFilter.idx });
 const statsReply = await waitFor('filter_stats');
 if (statsReply.idx !== reframerFilter.idx) fail(`filter_stats idx ${statsReply.idx}, expected ${reframerFilter.idx}`);
 const outputPidNames = Object.keys(statsReply.opids ?? {});
