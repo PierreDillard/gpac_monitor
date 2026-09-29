@@ -5,6 +5,7 @@ const logHub = {
     subscribers: new Map(),
     originalLogConfig: null,
     activeLogLevel: null,
+    sending: false,
 
     add(id, manager) {
         const wasEmpty = this.subscribers.size === 0;
@@ -13,6 +14,7 @@ const logHub = {
             this.originalLogConfig = sys.get_logs(true);
             sys.use_logx = true;
             sys.on_log = (tool, level, msg, tid, caller) => {
+                if (this.sending) return;
                 for (const manager of this.subscribers.values()) manager.handleLog(tool, level, msg, tid, caller);
             };
         }
