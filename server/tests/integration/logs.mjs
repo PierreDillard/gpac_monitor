@@ -30,7 +30,7 @@ const isFilterDebugLog = (log) => log.tool === 'filter' && log.level === debugLe
 
 await waitFor('monitor_config');
 
-send('subscribe_logs', { logLevel: 'filter@debug' });
+send('subscribe_logs', { logLevel: 'all@warning' });
 const logBatch = await waitFor('log_batch', (batch) => batch.logs.some(isFilterDebugLog));
 const filterLog = logBatch.logs.find(isFilterDebugLog);
 console.log(`log_batch filter debug: ${filterLog.message.trim()}`);
