@@ -49,6 +49,9 @@ jobs:
       - name: Filter stats
         run: timeout 20 node server/tests/integration/filterStats.mjs
 
+      - name: GPAC logs
+        run: timeout 20 node server/tests/integration/logs.mjs
+
       - name: GPAC diagnostics
         if: always()
         run: |
