@@ -32,7 +32,7 @@ const filtersReply = await waitFor('filters');
 const inspectFilter = filtersReply.filters.find((filter) => filter.type === 'inspect');
 if (!inspectFilter) fail('no inspect filter in graph');
 
-send('subscribe_session');
+// send('subscribe_session');
 const sessionReply = await waitFor('session_stats');
 const inspectStats = sessionReply.stats.find((filterStats) => filterStats.idx === inspectFilter.idx);
 if (!inspectStats) fail(`session_stats has no entry for inspect idx ${inspectFilter.idx}`);
