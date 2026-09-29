@@ -46,6 +46,9 @@ jobs:
       - name: Session and CPU stats
         run: timeout 20 node server/tests/integration/sessionCpuStats.mjs
 
+      - name: Filter stats
+        run: timeout 20 node server/tests/integration/filterStats.mjs
+
       - name: GPAC diagnostics
         if: always()
         run: |
