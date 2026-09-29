@@ -10,16 +10,14 @@ function fail(reason) {
 const socket = new WebSocket(`ws://127.0.0.1:${port}`);
 socket.onerror = () => fail('connection failed');
 
-function waitForLog(tool, level) {
+function waitFor(expected, isMatch = () => true) {
     return new Promise((resolve) => {
-        const timer = setTimeout(() => fail(`no ${tool} log at level ${level} within ${replyTimeoutMs} ms`), replyTimeoutMs);
+        const timer = setTimeout(() => fail(`no matching ${expected} within ${replyTimeoutMs} ms`), replyTimeoutMs);
         socket.onmessage = (event) => {
             const message = JSON.parse(String(event.data));
-            if (message.message !== 'log_batch') return;
-            const matchingLog = message.logs.find((log) => log.tool === tool && log.level === level);
-            if (!matchingLog) return;
+            if (message.message !== expected || !isMatch(message)) return;
             clearTimeout(timer);
-            resolve(matchingLog);
+            resolve(message);
         };
     });
 }
@@ -28,8 +26,13 @@ function send(message, fields = {}) {
     socket.send(`json:${JSON.stringify({ message, ...fields })}`);
 }
 
+const isFilterDebugLog = (log) => log.tool === 'filter' && log.level === debugLevel;
+
+await waitFor('monitor_config');
+
 send('subscribe_logs', { logLevel: 'filter@debug' });
-const filterLog = await waitForLog('filter', debugLevel);
+const logBatch = await waitFor('log_batch', (batch) => batch.logs.some(isFilterDebugLog));
+const filterLog = logBatch.logs.find(isFilterDebugLog);
 console.log(`log_batch filter debug: ${filterLog.message.trim()}`);
 
 socket.close();
