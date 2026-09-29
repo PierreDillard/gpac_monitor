@@ -52,6 +52,9 @@ jobs:
       - name: GPAC logs
         run: timeout 20 node server/tests/integration/logs.mjs
 
+      - name: Client isolation
+        run: timeout 40 node server/tests/integration/clientIsolation.mjs
+
       - name: GPAC diagnostics
         if: always()
         run: |
