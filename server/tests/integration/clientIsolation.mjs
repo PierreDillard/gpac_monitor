@@ -46,7 +46,7 @@ for (let cycle = 1; cycle <= cycleCount; cycle++) {
     leaving.send('subscribe_session');
     await leaving.waitFor('session_stats');
 
-    witness.send('unsubscribe_session');
+    leaving.send('unsubscribe_session');
     leaving.socket.onerror = null;
     leaving.socket.close();
     await leaving.waitForClose();
