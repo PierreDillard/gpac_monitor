@@ -1,0 +1,81 @@
+{
+  "message": "filters",
+  "filters": [
+    {
+      "idx": 0,
+      "name": "avgen",
+      "type": "jsf",
+      "status": "Frame 75 time=75/25 fps=25.37212449255751",
+      "itag": null,
+      "ID": null,
+      "nb_ipid": 0,
+      "nb_opid": 2,
+      "ipid": [],
+      "opid": [
+        { "pid_index": 0, "name": "audio", "stream_type": "Audio", "ID": 1 },
+        { "pid_index": 1, "name": "video", "stream_type": "Visual", "ID": 2 }
+      ]
+    },
+    {
+      "idx": 1,
+      "name": "reframer",
+      "type": "reframer",
+      "status": "",
+      "itag": null,
+      "ID": null,
+      "nb_ipid": 2,
+      "nb_opid": 2,
+      "ipid": [
+        {
+          "pid_index": 0,
+          "name": "audio",
+          "source_idx": 0,
+          "source_opid_idx": 0,
+          "stream_type": "Audio",
+          "ID": 1
+        },
+        {
+          "pid_index": 1,
+          "name": "video",
+          "source_idx": 0,
+          "source_opid_idx": 1,
+          "stream_type": "Visual",
+          "ID": 2
+        }
+      ],
+      "opid": [
+        { "pid_index": 0, "name": "audio", "stream_type": "Audio", "ID": 1 },
+        { "pid_index": 1, "name": "video", "stream_type": "Visual", "ID": 2 }
+      ]
+    },
+    {
+      "idx": 2,
+      "name": "inspect",
+      "type": "inspect",
+      "status": "",
+      "itag": null,
+      "ID": null,
+      "nb_ipid": 2,
+      "nb_opid": 0,
+      "ipid": [
+        {
+          "pid_index": 0,
+          "name": "audio",
+          "source_idx": 1,
+          "source_opid_idx": 0,
+          "stream_type": "Audio",
+          "ID": 1
+        },
+        {
+          "pid_index": 1,
+          "name": "video",
+          "source_idx": 1,
+          "source_opid_idx": 1,
+          "stream_type": "Visual",
+          "ID": 2
+        }
+      ],
+      "opid": []
+    }
+  ]
+}

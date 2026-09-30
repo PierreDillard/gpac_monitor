@@ -98,7 +98,13 @@ function LogManager(client) {
             this.batchTimer = null;
             return;
         }
-        this.sendToClient({ message: 'log_batch', logs: this.pendingLogs });
+        // Logs emitted by this send must not reach other subscribers, or two clients ping-pong forever
+        logHub.sending = true;
+        try {
+            this.sendToClient({ message: 'log_batch', logs: this.pendingLogs });
+        } finally {
+            logHub.sending = false;
+        }
         this.pendingLogs = [];
         this.batchTimer = null;
     };
