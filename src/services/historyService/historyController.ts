@@ -396,6 +396,8 @@ export class HistoryController {
   async play(): Promise<void> {
     if (this.loadedChunkIndex === null) {
       await this.loadInitialPlaybackChunk();
+    } else if (this.player.getState() === 'done') {
+      await this.seek(this.sessionStartUs);
     }
     this.player.play(() => {
       console.warn('[HistoryController] player restart callback called', {
@@ -435,7 +437,7 @@ export class HistoryController {
       return toUs - this.sessionStartUs;
     }
     if (this.manifest) return this.manifest.endUs - this.manifest.startUs;
-    return this.player.durationUs();
+    return 0;
   }
 
   getSessionStartUs(): number {

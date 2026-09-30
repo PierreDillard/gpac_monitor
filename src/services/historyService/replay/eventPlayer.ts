@@ -98,7 +98,10 @@ export class EventPlayer {
    */
   append(events: HistoryEvent[]): void {
     if (!events.length) return;
-    this.timelineEvents = this.timelineEvents.concat(events);
+    this.timelineEvents = this.timelineEvents
+      .slice(this.nextEventIndex)
+      .concat(events);
+    this.nextEventIndex = 0;
     if (this.state === 'waiting') {
       this.playbackStartTimeMs = performance.now();
       this.startEventUs = this.currentPlaybackTimeUs;
@@ -109,14 +112,6 @@ export class EventPlayer {
 
   setAwaitingMoreEvents(value: boolean): void {
     this.awaitingMoreEvents = value;
-  }
-
-  durationUs(): number {
-    if (!this.timelineEvents.length) return 0;
-    return (
-      this.timelineEvents[this.timelineEvents.length - 1].ts_us -
-      this.timelineEvents[0].ts_us
-    );
   }
 
   private setState(state: PlayerState) {
