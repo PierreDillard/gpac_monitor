@@ -46,10 +46,11 @@ const PIDRowInfoCell = memo(
           direction: variant,
           pidIndex: pid.pidIdx,
           label: buildPIDDisplayLabel(pid),
+          infoLine,
           streamTypeLabel: STREAM_TYPE_SHORT_LABEL[pid.type],
         }),
       );
-    }, [dispatch, filterIdx, variant, pid]);
+    }, [dispatch, filterIdx, variant, pid, infoLine]);
 
     return (
       <div className="min-w-0 flex items-center gap-1.5">
