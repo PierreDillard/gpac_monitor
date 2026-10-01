@@ -98,7 +98,7 @@ export class ChunkLoader {
       logs = await this.reader.readLogChunk(logIndex, this.segmentDir);
     } catch (error) {
       console.warn('[ChunkLoader] loadLogChunk failed:', error);
-      logs = [];
+      return { fromUs: entry.fromUs, toUs: entry.toUs, logs: [] };
     }
     const chunk: LogChunk = { fromUs: entry.fromUs, toUs: entry.toUs, logs };
 

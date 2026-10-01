@@ -195,18 +195,14 @@ export class WsSessionFileReader {
       `logs/logs_${String(chunkIndex).padStart(4, '0')}.jsonl`,
       segmentDir,
     );
-    try {
-      const response = await this.sendCommand({
-        message: 'read_file',
-        sessionId,
-        file,
-      });
-      return parseEventsJsonl(
-        response.content as string,
-      ) as unknown as LogEvent[];
-    } catch {
-      return [];
-    }
+    const response = await this.sendCommand({
+      message: 'read_file',
+      sessionId,
+      file,
+    });
+    return parseEventsJsonl(
+      response.content as string,
+    ) as unknown as LogEvent[];
   }
 
   private async ensureConnected(): Promise<void> {
