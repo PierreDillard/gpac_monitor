@@ -94,6 +94,7 @@ export class HistoryController {
 
     const versionBeforeSwitch = currentPreloader.getVersion();
     const manifest = await this.source.getSegmentManifest(nextSegmentDir);
+    const snapshot = await this.source.loadSegmentSnapshot(nextSegmentDir);
     if (versionBeforeSwitch !== currentPreloader.getVersion() || !manifest)
       return;
 
@@ -113,6 +114,7 @@ export class HistoryController {
     this.manifest = manifest;
     this.loader = loader;
     this.preloader = newPreloader;
+    this.snapshot = snapshot;
     this.segmentDir = nextSegmentDir;
     this.loadedChunkIndex = 0;
 
