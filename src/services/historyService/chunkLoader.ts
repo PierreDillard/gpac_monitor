@@ -48,7 +48,7 @@ export class ChunkLoader {
       events = await this.reader.readChunk(position, this.segmentDir);
     } catch (error) {
       console.warn('[ChunkLoader] loadEventChunk failed:', error);
-      events = [];
+      return { index: position, fromUs, toUs, events: [] };
     }
     const chunk: EventChunk = { index: position, fromUs, toUs, events };
 
