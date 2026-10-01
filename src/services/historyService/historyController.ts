@@ -40,6 +40,10 @@ import {
  * HistoryController — orchestrates snapshot loading + event replay.
  * Owns the EventPlayer and HistoryAdapter instances.
  */
+export type ReplayNotificationHandlers = {
+  onChunkUnreadable?: (position: number) => void;
+};
+
 export class HistoryController {
   private player = new EventPlayer();
   private adapter: HistoryAdapter | null = null;
@@ -57,6 +61,7 @@ export class HistoryController {
   private preloader: ChunkPreloadController | null = null;
   private timelineEvents: TimelineEvent[] = [];
   private userListener: PlayerListener | null = null;
+  private notificationHandlers: ReplayNotificationHandlers = {};
 
   constructor() {
     this.player.setListener(this.handlePlayerStateChange);
@@ -65,6 +70,14 @@ export class HistoryController {
   setListener(listener: PlayerListener) {
     this.userListener = listener;
   }
+
+  setNotificationHandlers(handlers: ReplayNotificationHandlers) {
+    this.notificationHandlers = handlers;
+  }
+
+  private notifyChunkUnreadable = (position: number): void => {
+    this.notificationHandlers.onChunkUnreadable?.(position);
+  };
 
   private handlePlayerStateChange = (
     state: PlayerState,
@@ -98,7 +111,12 @@ export class HistoryController {
     if (versionBeforeSwitch !== currentPreloader.getVersion() || !manifest)
       return;
 
-    const loader = new ChunkLoader(this.source, manifest, nextSegmentDir);
+    const loader = new ChunkLoader(
+      this.source,
+      manifest,
+      nextSegmentDir,
+      this.notifyChunkUnreadable,
+    );
     const firstChunk = await loader.loadEventChunk(0);
     if (versionBeforeSwitch !== currentPreloader.getVersion()) return;
 
@@ -246,7 +264,12 @@ export class HistoryController {
       ...deriveTimelineEvents(eventsIndex, sessionStartUs),
       ...deriveErrorWarningEvents(journalIndex, sessionStartUs),
     ].sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
-    this.loader = new ChunkLoader(source, manifest, segmentDir);
+    this.loader = new ChunkLoader(
+      source,
+      manifest,
+      segmentDir,
+      this.notifyChunkUnreadable,
+    );
     this.preloader = new ChunkPreloadController(
       this.loader,
       manifest,
@@ -296,6 +319,7 @@ export class HistoryController {
       preloader,
       player: this.player,
       appendLogs: this.appendLogs,
+      onReadError: this.notifyChunkUnreadable,
     });
     if (switchResult.stale) return;
     if (!switchResult.changed && switchResult.failed) {
@@ -352,10 +376,12 @@ export class HistoryController {
           await source.getSegmentManifest(previousSegmentDir);
         if (version !== preloader.getVersion()) return;
         if (previousManifest) {
-          const previousEvents = await source.readChunk(
-            previousManifest.chunkCount - 1,
-            previousSegmentDir,
-          );
+          const previousEvents = await source
+            .readChunk(previousManifest.chunkCount - 1, previousSegmentDir)
+            .catch((error) => {
+              console.warn('[HistoryController] seek lookback failed:', error);
+              return [];
+            });
           if (version !== preloader.getVersion()) return;
           this.collectStatsEvents(previousEvents, prevChunkStats);
         }

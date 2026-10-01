@@ -34,6 +34,7 @@ export async function resolveSegmentSwitch(params: {
   preloader: ChunkPreloadController;
   player: PlayerInterface;
   appendLogs: AppendLogsCallback;
+  onReadError?: (position: number) => void;
 }): Promise<SegmentSwitchOutcome> {
   const {
     sessionIndex,
@@ -43,6 +44,7 @@ export async function resolveSegmentSwitch(params: {
     preloader,
     player,
     appendLogs,
+    onReadError,
   } = params;
 
   if (!sessionIndex) return { stale: false, changed: false };
@@ -62,6 +64,7 @@ export async function resolveSegmentSwitch(params: {
     source,
     switched.manifest,
     switched.segmentDir,
+    onReadError,
   );
   const newPreloader = new ChunkPreloadController(
     loader,

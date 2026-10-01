@@ -32,6 +32,7 @@ export class ChunkLoader {
     private readonly reader: IChunkReader,
     private readonly manifest: HistoryManifest,
     private readonly segmentDir?: string,
+    private readonly onReadError?: (position: number) => void,
   ) {}
 
   async loadEventChunk(position: number): Promise<EventChunk> {
@@ -48,6 +49,7 @@ export class ChunkLoader {
       events = await this.reader.readChunk(position, this.segmentDir);
     } catch (error) {
       console.warn('[ChunkLoader] loadEventChunk failed:', error);
+      this.onReadError?.(position);
       return { index: position, fromUs, toUs, events: [] };
     }
     const chunk: EventChunk = { index: position, fromUs, toUs, events };

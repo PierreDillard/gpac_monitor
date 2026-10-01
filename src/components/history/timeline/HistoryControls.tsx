@@ -9,6 +9,7 @@ import {
 import type { TimelineFilter } from './EventsFilter';
 import { useTimelineViewport } from '../hooks/useTimelineViewport';
 import { useTimelineLanes } from '../hooks/useTimelineLanes';
+import { useReplayNotifications } from '../hooks/useReplayNotifications';
 import { MIN_VISIBLE_DURATION_US } from '@/utils/history/timelineViewport';
 import { getCursorPercent } from '@/utils/history/timelineViewportView';
 import HistoryTimelineDock from './HistoryTimelineDock';
@@ -24,6 +25,7 @@ const HistoryControls = () => {
     pause,
     seek,
   } = usePlayerState();
+  useReplayNotifications();
   const [dockHeight, setDockHeight] = useState(TIMELINE_DOCK_DEFAULT_HEIGHT_PX);
   const [panelWidth, setPanelWidth] = useState(EVENTS_PANEL_WIDTH_PX);
 
