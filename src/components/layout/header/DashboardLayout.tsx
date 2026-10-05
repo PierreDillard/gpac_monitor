@@ -156,6 +156,7 @@ const DashboardLayout = () => {
             }}
             isDraggable={true}
             isResizable={true}
+            resizeHandles={['e', 's', 'se']}
             margin={[16, 16]}
             containerPadding={[16, 16]}
             draggableCancel=".no-drag"
