@@ -36,6 +36,7 @@ export interface PIDGraphTarget {
   direction: 'input' | 'output';
   pidIndex: number;
   label?: string;
+  infoLine?: string;
   streamTypeLabel?: string;
   streamType?: GpacStreamType;
 }

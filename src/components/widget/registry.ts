@@ -13,6 +13,7 @@ export interface WidgetDefinition {
   icon: IconType;
   component: React.ElementType;
   defaultSize: { w: number; h: number };
+  minWidth: number;
   defaultPosition?: { x: number; y: number };
   defaultZIndex?: number;
   description?: string;
@@ -26,8 +27,9 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     title: 'Session Filters',
     icon: widgetIcons[WidgetType.FILTERSESSION],
     component: MultiFilterMonitor,
-    defaultSize: { w: 18, h: 6 },
-    defaultPosition: { x: 6, y: 0 },
+    defaultSize: { w: 11, h: 8 },
+    minWidth: 10,
+    defaultPosition: { x: 13, y: 0 },
     defaultZIndex: 1000,
     description: 'Manage session filters effectively.',
     enabled: true,
@@ -37,8 +39,9 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     title: 'Pipeline Graph',
     icon: widgetIcons[WidgetType.GRAPH],
     component: GraphMonitor,
-    defaultSize: { w: 16, h: 6 },
-    defaultPosition: { x: 0, y: 6 },
+    defaultSize: { w: 13, h: 8 },
+    minWidth: 2,
+    defaultPosition: { x: 0, y: 0 },
     defaultZIndex: 1004,
     description: 'Visualize the processing pipeline graph.',
     enabled: true,
@@ -48,8 +51,9 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     title: 'System Metrics',
     icon: widgetIcons[WidgetType.METRICS],
     component: MetricsMonitor,
-    defaultSize: { w: 6, h: 6 },
-    defaultPosition: { x: 0, y: 0 },
+    defaultSize: { w: 6, h: 4 },
+    minWidth: 4,
+    defaultPosition: { x: 0, y: 8 },
     defaultZIndex: 1001,
     description: 'Display real-time system performance metrics.',
     enabled: true,
@@ -59,8 +63,9 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     title: 'System Logs',
     icon: widgetIcons[WidgetType.LOGS],
     component: LogsMonitor,
-    defaultSize: { w: 8, h: 6 },
-    defaultPosition: { x: 16, y: 6 },
+    defaultSize: { w: 18, h: 4 },
+    minWidth: 2,
+    defaultPosition: { x: 6, y: 8 },
     defaultZIndex: 1002,
     description: 'View and filter system logs.',
     enabled: true,
