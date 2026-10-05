@@ -41,7 +41,7 @@ function StatusArraySection({ array, definitions }: StatusArraySectionProps) {
                 return (
                   <span
                     key={metric.key}
-                    className="text-[0.714rem] font-mono whitespace-nowrap inline-flex items-center gap-0.5"
+                    className="text-[0.714rem] font-mono inline-flex items-center gap-0.5"
                   >
                     {def && (
                       <MetricTooltip def={def}>
@@ -50,11 +50,11 @@ function StatusArraySection({ array, definitions }: StatusArraySectionProps) {
                         </span>
                       </MetricTooltip>
                     )}
-                    <span className="text-muted-foreground/70">
+                    <span className="text-muted-foreground/70 shrink-0 whitespace-nowrap">
                       {metric.key}:
                     </span>{' '}
                     <span
-                      className="tabular-nums text-info"
+                      className="tabular-nums text-info [overflow-wrap:anywhere]"
                       title={metric.tooltip}
                     >
                       {metric.value}

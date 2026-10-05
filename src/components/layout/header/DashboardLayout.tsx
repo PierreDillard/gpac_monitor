@@ -14,6 +14,7 @@ import {
 } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import '@/styles/grid-selection.css';
 import { updateWidgetPosition } from '@/shared/store/slices/widgetsSlice';
 import { closeSidebar } from '@/shared/store/slices/layoutSlice';
 import Header from './Header';
@@ -23,6 +24,11 @@ import HistoryControls from '@/components/history/timeline/HistoryControls';
 import { Widget } from '@/types/ui/widget';
 import { getWidgetDefinition } from '../../widget/registry';
 import SidebarCloseButton from '../sidebar/SidebarCloseButton';
+import { toGridLayoutItem } from './gridLayoutItem';
+import {
+  applyRowWidthShare,
+  changedLayoutItems,
+} from '@/utils/layout/rowWidthShare';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -38,6 +44,7 @@ const DashboardLayout = () => {
   const configs = useAppSelector((state) => state.widgets.configs);
   const isSidebarOpen = useAppSelector((state) => state.layout.isSidebarOpen);
   const isDraggingRef = useRef(false);
+  const resizeStartLayoutRef = useRef<Layout[]>([]);
   const { isHistory } = useDataMode();
   const rowHeight = useMemo(() => {
     const headerHeight = isHistory ? HISTORY_HEADER_HEIGHT_PX : 64;
@@ -49,15 +56,7 @@ const DashboardLayout = () => {
   // Memoize layouts object - only recreate if widget positions/sizes change
   const layouts: RGLLayouts = useMemo(
     () => ({
-      lg: activeWidgets.map((widget) => ({
-        i: widget.id,
-        x: widget.x,
-        y: widget.y,
-        w: widget.w,
-        h: widget.h,
-        minW: widget.isDetached ? 8 : 2,
-        minH: 2,
-      })),
+      lg: activeWidgets.map(toGridLayoutItem),
     }),
     [activeWidgets], // Only recreate when activeWidgets reference changes
   );
@@ -74,7 +73,7 @@ const DashboardLayout = () => {
       const Component = definition.component;
 
       return (
-        <div key={widget.id}>
+        <div key={widget.id} tabIndex={-1}>
           <Component
             id={widget.id}
             config={configs[widget.id] || EMPTY_WIDGET_CONFIG}
@@ -141,27 +140,42 @@ const DashboardLayout = () => {
                 }),
               );
             }}
-            onResizeStart={() => {
+            onResizeStart={(layout: Layout[]) => {
               isDraggingRef.current = true;
+              resizeStartLayoutRef.current = layout;
             }}
-            onResizeStop={(
-              _layout: Layout[],
+            onResize={(
+              layout: Layout[],
               _oldItem: Layout,
               newItem: Layout,
+              placeholder: Layout,
             ) => {
+              applyRowWidthShare(
+                resizeStartLayoutRef.current,
+                layout,
+                newItem,
+                placeholder,
+              );
+            }}
+            onResizeStop={(layout: Layout[]) => {
               isDraggingRef.current = false;
-              dispatch(
-                updateWidgetPosition({
-                  id: newItem.i,
-                  x: newItem.x,
-                  y: newItem.y,
-                  w: newItem.w,
-                  h: newItem.h,
-                }),
+              changedLayoutItems(resizeStartLayoutRef.current, layout).forEach(
+                (item) => {
+                  dispatch(
+                    updateWidgetPosition({
+                      id: item.i,
+                      x: item.x,
+                      y: item.y,
+                      w: item.w,
+                      h: item.h,
+                    }),
+                  );
+                },
               );
             }}
             isDraggable={true}
             isResizable={true}
+            resizeHandles={['e', 's', 'se']}
             margin={[16, 16]}
             containerPadding={[16, 16]}
             draggableCancel=".no-drag"

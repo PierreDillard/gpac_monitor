@@ -1,0 +1,75 @@
+.react-grid-item:focus {
+  outline: none;
+}
+
+.react-grid-item:focus,
+.react-grid-item.resizing,
+.react-grid-item:has(.react-resizable-handle:active) {
+  box-shadow:
+    0 0 0 1px hsl(var(--media-file) / 0.65),
+    0 0 8px hsl(var(--media-file) / 0.06);
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s {
+  display: none;
+}
+
+.react-grid-item:is(:focus, .resizing) > .react-resizable-handle {
+  display: block;
+  background-image: none;
+  transform: none;
+}
+
+.react-grid-item:is(:focus, .resizing)
+  > .react-resizable-handle.react-resizable-handle-e {
+  top: 0;
+  right: -10px;
+  width: 12px;
+  height: 100%;
+  margin-top: 0;
+}
+
+.react-grid-item:is(:focus, .resizing)
+  > .react-resizable-handle.react-resizable-handle-s {
+  left: 0;
+  bottom: -10px;
+  width: 100%;
+  height: 12px;
+  margin-left: 0;
+}
+
+.react-grid-item:is(:focus, .resizing) > .react-resizable-handle::after {
+  border: none;
+  border-radius: 2px;
+  background: hsl(var(--media-file) / 0.8);
+}
+
+.react-grid-item:is(:focus, .resizing) > .react-resizable-handle-e::after {
+  top: 50%;
+  right: 4px;
+  bottom: auto;
+  width: 3px;
+  height: 32px;
+  margin-top: -16px;
+}
+
+.react-grid-item:is(:focus, .resizing) > .react-resizable-handle-s::after {
+  left: 50%;
+  right: auto;
+  bottom: 4px;
+  width: 32px;
+  height: 3px;
+  margin-left: -16px;
+}
+
+.react-grid-item:is(:focus, .resizing) > .react-resizable-handle-se::after {
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  background: none;
+  border-right: 2px solid hsl(var(--media-file) / 0.8);
+  border-bottom: 2px solid hsl(var(--media-file) / 0.8);
+}
