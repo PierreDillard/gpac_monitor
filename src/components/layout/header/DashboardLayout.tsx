@@ -23,6 +23,7 @@ import HistoryControls from '@/components/history/timeline/HistoryControls';
 import { Widget } from '@/types/ui/widget';
 import { getWidgetDefinition } from '../../widget/registry';
 import SidebarCloseButton from '../sidebar/SidebarCloseButton';
+import { toGridLayoutItem } from './gridLayoutItem';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -49,15 +50,7 @@ const DashboardLayout = () => {
   // Memoize layouts object - only recreate if widget positions/sizes change
   const layouts: RGLLayouts = useMemo(
     () => ({
-      lg: activeWidgets.map((widget) => ({
-        i: widget.id,
-        x: widget.x,
-        y: widget.y,
-        w: widget.w,
-        h: widget.h,
-        minW: widget.isDetached ? 8 : 2,
-        minH: 2,
-      })),
+      lg: activeWidgets.map(toGridLayoutItem),
     }),
     [activeWidgets], // Only recreate when activeWidgets reference changes
   );

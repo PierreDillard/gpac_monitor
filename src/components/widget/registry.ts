@@ -13,6 +13,7 @@ export interface WidgetDefinition {
   icon: IconType;
   component: React.ElementType;
   defaultSize: { w: number; h: number };
+  minWidth: number;
   defaultPosition?: { x: number; y: number };
   defaultZIndex?: number;
   description?: string;
@@ -27,6 +28,7 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     icon: widgetIcons[WidgetType.FILTERSESSION],
     component: MultiFilterMonitor,
     defaultSize: { w: 18, h: 6 },
+    minWidth: 10,
     defaultPosition: { x: 6, y: 0 },
     defaultZIndex: 1000,
     description: 'Manage session filters effectively.',
@@ -38,6 +40,7 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     icon: widgetIcons[WidgetType.GRAPH],
     component: GraphMonitor,
     defaultSize: { w: 16, h: 6 },
+    minWidth: 2,
     defaultPosition: { x: 0, y: 6 },
     defaultZIndex: 1004,
     description: 'Visualize the processing pipeline graph.',
@@ -49,6 +52,7 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     icon: widgetIcons[WidgetType.METRICS],
     component: MetricsMonitor,
     defaultSize: { w: 6, h: 6 },
+    minWidth: 4,
     defaultPosition: { x: 0, y: 0 },
     defaultZIndex: 1001,
     description: 'Display real-time system performance metrics.',
@@ -60,6 +64,7 @@ export const widgetRegistry: Record<WidgetType, WidgetDefinition> = {
     icon: widgetIcons[WidgetType.LOGS],
     component: LogsMonitor,
     defaultSize: { w: 8, h: 6 },
+    minWidth: 2,
     defaultPosition: { x: 16, y: 6 },
     defaultZIndex: 1002,
     description: 'View and filter system logs.',
