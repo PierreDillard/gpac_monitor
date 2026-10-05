@@ -14,6 +14,7 @@ import {
 } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import '@/styles/grid-selection.css';
 import { updateWidgetPosition } from '@/shared/store/slices/widgetsSlice';
 import { closeSidebar } from '@/shared/store/slices/layoutSlice';
 import Header from './Header';
@@ -67,7 +68,7 @@ const DashboardLayout = () => {
       const Component = definition.component;
 
       return (
-        <div key={widget.id}>
+        <div key={widget.id} tabIndex={-1}>
           <Component
             id={widget.id}
             config={configs[widget.id] || EMPTY_WIDGET_CONFIG}

@@ -1,0 +1,11 @@
+.react-grid-item:focus {
+  outline: none;
+}
+
+.react-grid-item:focus,
+.react-grid-item.resizing,
+.react-grid-item:has(.react-resizable-handle:active) {
+  box-shadow:
+    0 0 0 1px hsl(var(--media-file) / 0.65),
+    0 0 8px hsl(var(--media-file) / 0.06);
+}
