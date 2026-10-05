@@ -1,0 +1,51 @@
+name: promote staging
+
+on:
+  workflow_run:
+    workflows: [unit tests, backend integration]
+    types: [completed]
+    branches: [staging]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: promote-staging
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Read both conclusions
+        id: checks
+        run: |
+          conclusion_of() {
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$HEAD_SHA&branch=staging&event=push&per_page=100" \
+              --jq "[.workflow_runs[] | select(.name == \"$1\")][0].conclusion // \"pending\""
+          }
+          unit_conclusion=$(conclusion_of "unit tests")
+          backend_conclusion=$(conclusion_of "backend integration")
+          echo "sha=$HEAD_SHA unit tests=$unit_conclusion backend integration=$backend_conclusion"
+          if [ "$unit_conclusion" = success ] && [ "$backend_conclusion" = success ]; then
+            echo "promote=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "promote=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout staging SHA
+        if: steps.checks.outputs.promote == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_SHA }}
+          fetch-depth: 0
+
+      - name: Fast-forward master
+        if: steps.checks.outputs.promote == 'true'
+        run: git push origin "$HEAD_SHA:refs/heads/master"
