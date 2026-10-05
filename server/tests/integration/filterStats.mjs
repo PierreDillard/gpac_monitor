@@ -44,7 +44,7 @@ if (inputPids.length === 0) fail('filter_stats has no input pid for reframer');
 for (const inputPid of inputPids) {
     if (inputPid.source_idx === undefined) fail(`input pid ${inputPid.name} has no source_idx`);
     const propertyNames = Object.keys(inputPid.properties ?? {});
-    if (propertyNames.length === 0) fail(`input pid ${inputPid.name} has no properties`);
+    if (propertyNames.length !== 0) fail(`input pid ${inputPid.name} has no properties`);
     console.log(`ipid ${inputPid.name} source_idx ${inputPid.source_idx} properties ${propertyNames.join(', ')}`);
     for (const propertyName of ['Width', 'Height', 'CodecID', 'StreamType']) {
         console.log(`ipid ${inputPid.name} ${propertyName} ${JSON.stringify(inputPid.properties[propertyName] ?? null)}`);
