@@ -33,7 +33,7 @@ function fail(reason) {
     process.exit(1);
 }
 
-const fixtureKeys = [...Object.keys(JSON.parse(readFileSync(fixturePath, 'utf8'))), 'controlled_red'].sort();
+const fixtureKeys = Object.keys(JSON.parse(readFileSync(fixturePath, 'utf8'))).sort();
 
 while (true) {
     let monitorConfig;
