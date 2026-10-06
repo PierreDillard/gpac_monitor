@@ -4,6 +4,10 @@ import { LocalFileSessionFileReader } from '@/services/historyService/sessionFil
 import { FileHistorySource } from '@/services/historyService/source/FileHistorySource';
 import type { SessionInfo } from '@/services/historyService/sessionFileReader/types';
 
+const isDirectoryEntry = (
+  entry: FileSystemEntry,
+): entry is FileSystemDirectoryEntry => entry.isDirectory;
+
 export const useLocalSessionFolder = () => {
   const { loadFromSource } = useDataSource();
   const [browser, setBrowser] = useState<LocalFileSessionFileReader | null>(
@@ -13,12 +17,42 @@ export const useLocalSessionFolder = () => {
   const [loadingSession, setLoadingSession] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const openFiles = useCallback(async (files: FileList) => {
-    const fileBrowser = new LocalFileSessionFileReader(Array.from(files));
-    setSessions(await fileBrowser.listSessions());
-    setBrowser(fileBrowser);
-    setLoadError(null);
-  }, []);
+  const openReader = useCallback(
+    async (fileBrowser: LocalFileSessionFileReader) => {
+      try {
+        const folderSessions = await fileBrowser.listSessions();
+        if (folderSessions.length === 0) {
+          setLoadError('No session found in this folder');
+          return;
+        }
+        setSessions(folderSessions);
+        setBrowser(fileBrowser);
+        setLoadError(null);
+      } catch (err) {
+        console.error('[useLocalSessionFolder] list error:', err);
+        setLoadError(err instanceof Error ? err.message : 'Cannot read folder');
+      }
+    },
+    [],
+  );
+
+  const openFiles = useCallback(
+    (files: FileList) =>
+      openReader(new LocalFileSessionFileReader(Array.from(files))),
+    [openReader],
+  );
+
+  const openDroppedItem = useCallback(
+    (dataTransfer: DataTransfer) => {
+      const entry = dataTransfer.items[0]?.webkitGetAsEntry();
+      if (!entry || !isDirectoryEntry(entry)) {
+        setLoadError('Drop a folder');
+        return;
+      }
+      void openReader(new LocalFileSessionFileReader(entry));
+    },
+    [openReader],
+  );
 
   const selectSession = useCallback(
     async (sessionId: string) => {
@@ -52,6 +86,7 @@ export const useLocalSessionFolder = () => {
     loadingSession,
     loadError,
     openFiles,
+    openDroppedItem,
     selectSession,
   };
 };

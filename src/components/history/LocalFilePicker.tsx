@@ -32,7 +32,9 @@ const LocalFilePicker = memo(
     return (
       <div className=" border-monitor-line">
         <div className="px-4 py-3">
-          <p className="text-xs text-gray-500 mb-2">Load from local files</p>
+          <p className="text-xs text-gray-500 mb-2">
+            Load from local files — or drop the history folder here
+          </p>
           <input
             ref={inputRef}
             type="file"
@@ -70,10 +72,10 @@ const LocalFilePicker = memo(
                 <span className="text-sm">Loading session…</span>
               </div>
             )}
-            {loadError && (
-              <p className="text-xs text-center mt-2">{loadError}</p>
-            )}
           </div>
+        )}
+        {loadError && (
+          <p className="text-xs text-center px-3 pb-3">{loadError}</p>
         )}
       </div>
     );

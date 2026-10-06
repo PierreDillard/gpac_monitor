@@ -11,7 +11,6 @@ import { selectActiveConnection } from '@/shared/store/selectors';
 import SessionRow from './SessionRow';
 import LocalFilePicker from './LocalFilePicker';
 import { useLocalSessionFolder } from './hooks/useLocalSessionFolder';
-import { probeDroppedFolder } from './localDropProbe'; // TEMP perf-gate
 
 const SessionPicker = () => {
   const { isHistory } = useDataMode();
@@ -64,8 +63,11 @@ const SessionPicker = () => {
   return (
     <div
       className="fixed inset-0 top-16 z-30 flex items-center justify-center bg-gray-950/80"
-      onDragOver={(event) => event.preventDefault()} // TEMP perf-gate
-      onDrop={probeDroppedFolder} // TEMP perf-gate
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        local.openDroppedItem(event.dataTransfer);
+      }}
     >
       <div className="bg-monitor-selection border-0 rounded-xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-monitor-line">
