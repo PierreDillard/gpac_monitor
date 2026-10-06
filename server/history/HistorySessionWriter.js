@@ -56,6 +56,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
     this._sessionStartUs = null;
     this._lastEventUs = null;
     this._closed = false;
+    this._sessionJsonWritten = false;
     this._eventsIndex = [];
     this._journalTsUs = [];
     this._journalTypes = [];
@@ -135,6 +136,10 @@ function HistorySessionWriter(historyDir, sessionId, options) {
     this.writeSessionIndex = function() {
         this._writeEventsIndex();
         this._writeJournalIndex();
+        this._writeSessionJson();
+    };
+
+    this._writeSessionJson = function() {
         const lastIndex = this._segments.length - 1;
         const sessionIndex = {
             version: 1,
@@ -149,6 +154,14 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         };
         if (this._closed) sessionIndex.endUs = this._lastEventUs;
         writeFileAtomic(`${dir}/session.json`, JSON.stringify(sessionIndex) + '\n');
+        this._sessionJsonWritten = true;
+    };
+
+    // Torn-session safety: a killed GPAC never reaches close(), so session.json
+    // must exist from the first event. Its content only changes at rollover/close,
+    // which rewrite it themselves.
+    this._ensureSessionJson = function() {
+        if (!this._sessionJsonWritten) this._writeSessionJson();
     };
 
     this.writeSnapshot = function(obj) {
@@ -161,6 +174,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         this._updateTimestamps(tsUs);
         this._segmentWriter.writeLog(jsonString, tsUs);
         this._checkRollover(tsUs);
+        this._ensureSessionJson();
     };
 
     this.writeEvent = function(jsonString, tsUs) {
@@ -168,6 +182,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         this._updateTimestamps(tsUs);
         const rotated = this._segmentWriter.writeEvent(jsonString, tsUs);
         this._checkRollover(tsUs);
+        this._ensureSessionJson();
         return rotated;
     };
 
