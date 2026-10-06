@@ -41,11 +41,11 @@ const SessionRow = memo(
             {inProgress && (
               <span className="text-green-400">in progress · </span>
             )}
-            {formatBytes(session.sizeBytes)}
+            {session.sizeBytes ? formatBytes(session.sizeBytes) : null}
             {session.startUs !== undefined && session.endUs !== undefined && (
               <span className="text-gray-400">
-                {' '}
-                · {formatTime(session.endUs - session.startUs)}
+                {session.sizeBytes ? ' · ' : null}
+                {formatTime(session.endUs - session.startUs)}
               </span>
             )}
           </div>

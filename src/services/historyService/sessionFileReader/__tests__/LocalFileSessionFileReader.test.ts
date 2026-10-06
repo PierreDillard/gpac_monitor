@@ -135,18 +135,34 @@ describe('LocalFileSessionFileReader — segmented sessions', () => {
     );
   });
 
-  it('reports non-zero size and duration for a segmented session', async () => {
+  it('reports duration but no size for a segmented session', async () => {
     const reader = new LocalFileSessionFileReader(segmentedSessionFiles());
 
     const [session] = await reader.listSessions();
 
-    expect(session.sizeBytes).toBeGreaterThan(0);
+    expect(session.sizeBytes).toBeUndefined();
     expect(session.startUs).toBe(1_000_000);
     expect(session.endUs).toBe(30_000_000);
     expect(session.hasSnapshot).toBe(true);
     expect(session.hasManifest).toBe(true);
     expect(session.hasCheckpoints).toBe(true);
     expect(session.isComplete).toBe(true);
+  });
+
+  it('lists sessions without reading any file size', async () => {
+    const files = segmentedSessionFiles().map((file) =>
+      Object.defineProperty(file, 'size', {
+        get: () => {
+          throw new Error('file.size read during listSessions');
+        },
+      }),
+    );
+    const reader = new LocalFileSessionFileReader(files);
+
+    const [session] = await reader.listSessions();
+
+    expect(session.sessionId).toBe(SESSION_ID);
+    expect(session.endUs).toBe(30_000_000);
   });
 
   it('reads same-index chunks from different segments without collision', async () => {

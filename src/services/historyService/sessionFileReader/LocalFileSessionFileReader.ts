@@ -69,16 +69,12 @@ export class LocalFileSessionFileReader {
       console.error(`[LocalFileSessionFileReader] ${sessionId}: bad index`);
     }
 
-    let sizeBytes = 0;
-    for (const file of files.values()) sizeBytes += file.size;
-
     return {
       sessionId,
       hasSnapshot: paths.includes('snapshot.json'),
       hasEvents: files.has('events.jsonl') || paths.includes('chunks/'),
       hasManifest: paths.includes('manifest.json') || isSegmented,
       hasCheckpoints: paths.includes('checkpoints/'),
-      sizeBytes,
       isComplete: isSegmented ? range.endUs !== undefined : files.has('done'),
       startUs: range.startUs ?? undefined,
       endUs: range.endUs,
