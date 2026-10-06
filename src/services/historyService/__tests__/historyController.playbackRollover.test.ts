@@ -142,7 +142,11 @@ describe('HistoryController — playback rollover across a segment boundary (tas
       expect(source.readChunk).toHaveBeenCalledWith(1, 'segments/0000'),
     );
 
-    expect(source.getSegmentManifest).not.toHaveBeenCalledWith('segments/0001');
+    // Only the load-time read of the last segment's end, no rollover read.
+    const segment1Reads = (
+      source.getSegmentManifest as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(([segmentDir]) => segmentDir === 'segments/0001');
+    expect(segment1Reads).toHaveLength(1);
   });
 });
 

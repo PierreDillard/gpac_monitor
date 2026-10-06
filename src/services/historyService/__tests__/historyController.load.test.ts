@@ -142,7 +142,28 @@ describe('HistoryController.durationUs', () => {
     expect(controller.durationUs()).toBe(25_000_000);
   });
 
-  it('open segmented session: finite bound from last segment + segmentDurationUs', async () => {
+  it('short torn session: real end from the segment manifest, not segmentDurationUs', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 86_400_000_000,
+      retentionMaxSegments: 30,
+      segments: [{ index: 0, fromUs: 0 }],
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi
+      .fn()
+      .mockResolvedValue({ ...makeManifest(), endUs: 45_000_000 });
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(controller.durationUs()).toBe(45_000_000);
+  });
+
+  it('torn multi-segment session: real end from the last segment manifest', async () => {
     const controller = new HistoryController();
     const source = makeSource();
     const sessionIndex: HistorySessionIndex = {
@@ -151,16 +172,22 @@ describe('HistoryController.durationUs', () => {
       segmentDurationUs: 10_000_000,
       retentionMaxSegments: 3,
       segments: [
-        { index: 0, fromUs: 0, toUs: 10_000_000 },
+        { index: 0, fromUs: 0 },
         { index: 1, fromUs: 10_000_000 },
       ],
     };
     source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
-    source.getSegmentManifest = vi.fn().mockResolvedValue(makeManifest());
+    source.getSegmentManifest = vi.fn((segmentDir: string) =>
+      Promise.resolve(
+        segmentDir.endsWith('0001')
+          ? { ...makeManifest(), startUs: 10_000_000, endUs: 13_000_000 }
+          : makeManifest(),
+      ),
+    );
     source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
 
     await controller.load(source, vi.fn() as any);
 
-    expect(controller.durationUs()).toBe(20_000_000);
+    expect(controller.durationUs()).toBe(13_000_000);
   });
 });

@@ -57,6 +57,7 @@ export class HistoryController {
   private sessionIndex: HistorySessionIndex | null = null;
   private source: HistorySource | null = null;
   private segmentDir: string | undefined;
+  private openSessionEndUs: number | undefined;
   private loadedChunkIndex: number | null = null;
   private preloader: ChunkPreloadController | null = null;
   private timelineEvents: TimelineEvent[] = [];
@@ -252,6 +253,16 @@ export class HistoryController {
       throw new Error('[HistoryController] No manifest for session');
 
     this.manifest = manifest;
+    // Torn session: session.json has no end, the last segment's manifest has the real one.
+    const lastSegment =
+      sessionIndex?.segments[sessionIndex.segments.length - 1];
+    this.openSessionEndUs =
+      !lastSegment || sessionIndex?.endUs !== undefined
+        ? undefined
+        : getSegmentDir(lastSegment) === segmentDir
+          ? manifest.endUs
+          : (await source.getSegmentManifest(getSegmentDir(lastSegment)))
+              ?.endUs;
     const sessionStartUs = sessionIndex?.startUs ?? manifest.startUs;
     const eventsIndex = segmentDir
       ? ((await source.loadGlobalEventsIndex()) ?? [])
@@ -461,6 +472,7 @@ export class HistoryController {
       const lastSegment = this.sessionIndex.segments[lastPosition];
       const toUs =
         getSegmentToUs(this.sessionIndex, lastPosition) ??
+        this.openSessionEndUs ??
         (lastSegment.fromUs ?? 0) + this.sessionIndex.segmentDurationUs;
       return toUs - this.sessionStartUs;
     }
