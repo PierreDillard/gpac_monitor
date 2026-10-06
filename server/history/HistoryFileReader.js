@@ -26,14 +26,17 @@ function HistoryFileReader(historyDir) {
         for (const entry of entries) {
             if (!VALID_SESSION_ID.test(entry)) continue;
             const dir = `${baseDir}/${entry}`;
-            const hasSnapshot = fileExists(`${dir}/snapshot.json`);
-            const hasManifest = fileExists(`${dir}/manifest.json`);
-            const hasEvents = fileExists(`${dir}/events.jsonl`);
             const hasSessionIndex = fileExists(`${dir}/session.json`);
+            const sessionIndex = hasSessionIndex ? readJson(`${dir}/session.json`) : null;
+            const firstSegment = sessionIndex && sessionIndex.segments && sessionIndex.segments[0];
+            const dataDir = firstSegment ? `${dir}/segments/${String(firstSegment.index).padStart(4, '0')}` : dir;
+            const hasSnapshot = fileExists(`${dataDir}/snapshot.json`);
+            const hasManifest = fileExists(`${dataDir}/manifest.json`);
+            const hasEvents = fileExists(`${dir}/events.jsonl`);
             if (!hasSnapshot && !hasManifest && !hasEvents && !hasSessionIndex) continue;
-            const hasCheckpoints = dirHasFiles(`${dir}/checkpoints`, /^cp_\d{4}\.json$/);
+            const hasCheckpoints = dirHasFiles(`${dataDir}/checkpoints`, /^cp_\d{4}\.json$/);
             const sizeBytes = hasEvents ? fileSize(`${dir}/events.jsonl`) : 0;
-            const isComplete = fileExists(`${dir}/done`);
+            const isComplete = sessionIndex ? sessionIndex.endUs !== undefined : fileExists(`${dir}/done`);
             sessions.push({ sessionId: entry, hasSnapshot, hasEvents, hasManifest, hasCheckpoints, sizeBytes, isComplete, hasSessionIndex });
         }
         sessions.sort((a, b) => (a.sessionId < b.sessionId ? 1 : a.sessionId > b.sessionId ? -1 : 0));
@@ -117,6 +120,12 @@ function fileExists(path) {
     if (!file) return false;
     file.close();
     return true;
+}
+
+function readJson(path) {
+    const file = std.open(path, 'r');
+    if (!file) return null;
+    try { return JSON.parse(file.readAsString()); } catch (_e) { return null; } finally { file.close(); }
 }
 
 function fileSize(path) {

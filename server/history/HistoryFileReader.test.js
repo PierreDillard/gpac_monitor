@@ -51,6 +51,38 @@ describe('HistoryFileReader listSessions', () => {
 
     vi.restoreAllMocks();
   });
+
+  it('probes snapshot/manifest/checkpoints in the first listed segment, closed or torn', () => {
+    const reader = new HistoryFileReader('test-history');
+    const closedId = '2026-01-03_00-00-00';
+    const tornId = '2026-01-04_00-00-00';
+    const sessionIndexes = {
+      [closedId]: { version: 1, startUs: 0, segments: [{ index: 2, fromUs: 0 }, { index: 3, fromUs: 9 }], endUs: 20 },
+      [tornId]: { version: 1, startUs: 0, segments: [{ index: 0, fromUs: 0 }] },
+    };
+    const segmentDirs = [`test-history/${closedId}/segments/0002`, `test-history/${tornId}/segments/0000`];
+
+    vi.spyOn(os, 'readdir').mockImplementation((path) => {
+      if (path === 'test-history') return [[closedId, tornId], 0];
+      if (segmentDirs.some((segmentDir) => path === `${segmentDir}/checkpoints`)) return [['cp_0000.json'], 0];
+      return [[], 0];
+    });
+    vi.spyOn(std, 'open').mockImplementation((path) => {
+      const sessionId = Object.keys(sessionIndexes).find((id) => path === `test-history/${id}/session.json`);
+      if (sessionId) return { readAsString: () => JSON.stringify(sessionIndexes[sessionId]), close: () => {} };
+      const inSegment = segmentDirs.some((segmentDir) =>
+        path === `${segmentDir}/snapshot.json` || path === `${segmentDir}/manifest.json`);
+      return inSegment ? { close: () => {} } : null;
+    });
+
+    const sessions = reader.listSessions();
+
+    const valid = { hasSnapshot: true, hasManifest: true, hasCheckpoints: true, hasSessionIndex: true };
+    expect(sessions.find((session) => session.sessionId === closedId)).toMatchObject({ ...valid, isComplete: true });
+    expect(sessions.find((session) => session.sessionId === tornId)).toMatchObject({ ...valid, isComplete: false });
+
+    vi.restoreAllMocks();
+  });
 });
 
 describe('HistoryFileReader readEventsRange', () => {
