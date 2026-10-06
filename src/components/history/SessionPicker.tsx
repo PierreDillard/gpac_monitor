@@ -10,6 +10,8 @@ import { useAppSelector } from '@/shared/hooks/redux';
 import { selectActiveConnection } from '@/shared/store/selectors';
 import SessionRow from './SessionRow';
 import LocalFilePicker from './LocalFilePicker';
+import { useLocalSessionFolder } from './hooks/useLocalSessionFolder';
+import { probeDroppedFolder } from './localDropProbe'; // TEMP perf-gate
 
 const SessionPicker = () => {
   const { isHistory } = useDataMode();
@@ -18,7 +20,8 @@ const SessionPicker = () => {
   const { sessions, loading, error, browser, retry } = useSessionList(
     activeConnection?.address,
   );
-  const [isLocal, setIsLocal] = useState(false);
+  const local = useLocalSessionFolder();
+  const isLocal = local.hasFolder;
   const [loadingSession, setLoadingSession] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -59,7 +62,11 @@ const SessionPicker = () => {
   if (!isHistory || sessionLoaded) return null;
 
   return (
-    <div className="fixed inset-0 top-16 z-30 flex items-center justify-center bg-gray-950/80">
+    <div
+      className="fixed inset-0 top-16 z-30 flex items-center justify-center bg-gray-950/80"
+      onDragOver={(event) => event.preventDefault()} // TEMP perf-gate
+      onDrop={probeDroppedFolder} // TEMP perf-gate
+    >
       <div className="bg-monitor-selection border-0 rounded-xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-monitor-line">
           <LuClapperboard className="w-4 h-4 text-red-400" />
@@ -118,7 +125,13 @@ const SessionPicker = () => {
           </>
         </div>
 
-        <LocalFilePicker onLocalFilesLoaded={() => setIsLocal(true)} />
+        <LocalFilePicker
+          sessions={local.sessions}
+          loadingSession={local.loadingSession}
+          loadError={local.loadError}
+          onFiles={local.openFiles}
+          onSelect={local.selectSession}
+        />
       </div>
     </div>
   );
