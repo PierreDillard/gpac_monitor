@@ -94,7 +94,14 @@ function segmentedSessionFiles(): File[] {
   });
   return [
     makeMockFile(`history/${SESSION_ID}/session.json`, sessionIndex),
-    makeMockFile(`history/${SESSION_ID}/events_index.json`, '[]'),
+    makeMockFile(
+      `history/${SESSION_ID}/events_index.jsonl`,
+      '{"ts_us":1000000,"type":"graph-change"}\n',
+    ),
+    makeMockFile(
+      `history/${SESSION_ID}/journal_index.jsonl`,
+      '{"ts_us":2000000,"type":1}\n{"ts_us":2500000,"type":2}\n{"ts_us":26',
+    ),
     makeMockFile(
       `history/${SESSION_ID}/segments/0000/snapshot.json`,
       SNAPSHOT_CONTENT,
@@ -204,6 +211,34 @@ describe('LocalFileSessionFileReader — segmented sessions', () => {
     ]);
     await expect(futureReader.readSessionIndex(SESSION_ID)).rejects.toThrow(
       /unsupported version/,
+    );
+  });
+
+  it('reads timeline markers from the root JSONL indexes', async () => {
+    const reader = new LocalFileSessionFileReader(segmentedSessionFiles());
+
+    await expect(reader.readEventsIndex(SESSION_ID)).resolves.toEqual([
+      { ts_us: 1_000_000, type: 'graph-change' },
+    ]);
+    await expect(reader.readJournalIndex(SESSION_ID)).resolves.toEqual({
+      baseTsUs: 2_000_000,
+      tsDeltaUs: [0, 500_000],
+      types: [1, 2],
+    });
+  });
+
+  it('still reads the columnar journal of a legacy session', async () => {
+    const journal = { baseTsUs: 7_000_000, tsDeltaUs: [0, 15], types: [1, 2] };
+    const reader = new LocalFileSessionFileReader([
+      makeMockFile('history/legacy-session/snapshot.json', SNAPSHOT_CONTENT),
+      makeMockFile(
+        'history/legacy-session/journal_index.json',
+        JSON.stringify(journal),
+      ),
+    ]);
+
+    await expect(reader.readJournalIndex('legacy-session')).resolves.toEqual(
+      journal,
     );
   });
 

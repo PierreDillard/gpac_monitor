@@ -47,3 +47,39 @@ export function parseJournalIndex(raw: unknown): JournalIndex | null {
     types: data['types'],
   };
 }
+
+function parseJournalLine(line: string): { tsUs: number; type: number } | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const entry = parsed as Record<string, unknown>;
+  const tsUs = entry['ts_us'];
+  const type = entry['type'];
+  if (typeof tsUs !== 'number' || typeof type !== 'number') return null;
+  return { tsUs, type };
+}
+
+export function parseJournalJsonl(text: string): JournalIndex | null {
+  const tsUsList: number[] = [];
+  const types: number[] = [];
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const entry = parseJournalLine(trimmed);
+    if (!entry) continue;
+    tsUsList.push(entry.tsUs);
+    types.push(entry.type);
+  }
+  if (tsUsList.length === 0) return null;
+
+  const baseTsUs = tsUsList[0];
+  return {
+    baseTsUs,
+    tsDeltaUs: tsUsList.map((tsUs) => tsUs - baseTsUs),
+    types,
+  };
+}

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseJournalIndexPointer,
   parseJournalIndex,
+  parseJournalJsonl,
 } from '../journalIndexParser';
 
 describe('parseJournalIndexPointer', () => {
@@ -74,5 +75,32 @@ describe('parseJournalIndex', () => {
       tsDeltaUs: [0, 15],
       types: [1, 2],
     });
+  });
+});
+
+describe('parseJournalJsonl', () => {
+  it('converts one line per fact into the columnar index', () => {
+    const text = '{"ts_us":1523463,"type":1}\n{"ts_us":1523478,"type":2}\n';
+
+    expect(parseJournalJsonl(text)).toEqual({
+      baseTsUs: 1523463,
+      tsDeltaUs: [0, 15],
+      types: [1, 2],
+    });
+  });
+
+  it('skips an invalid line and a truncated last line', () => {
+    const text =
+      '{"ts_us":1523463,"type":1}\n{"ts_us":1523470,"type":"error"}\n{"ts_us":1527685,"type":1}\n{"ts_us":15';
+
+    expect(parseJournalJsonl(text)).toEqual({
+      baseTsUs: 1523463,
+      tsDeltaUs: [0, 4222],
+      types: [1, 1],
+    });
+  });
+
+  it('returns null when no line is usable', () => {
+    expect(parseJournalJsonl('')).toBeNull();
   });
 });

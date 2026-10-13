@@ -12,7 +12,7 @@ import type {
 import type { SessionInfo } from './types';
 import { parseEventsJsonl } from '../loader/eventLoader';
 import { parseManifest } from '../manifestParser';
-import { parseJournalIndex } from '../journalIndexParser';
+import { parseJournalIndex, parseJournalJsonl } from '../journalIndexParser';
 import { parseSessionIndex, parseEventsIndex } from '../sessionIndexParser';
 
 function segmentFile(file: string, segmentDir?: string): string {
@@ -123,9 +123,9 @@ export class WsSessionFileReader {
       const response = await this.sendCommand({
         message: 'read_file',
         sessionId,
-        file: 'events_index.json',
+        file: 'events_index.jsonl',
       });
-      return parseEventsIndex(JSON.parse(response.content as string));
+      return parseEventsIndex(parseEventsJsonl(response.content as string));
     } catch {
       return null;
     }
@@ -133,6 +133,21 @@ export class WsSessionFileReader {
 
   async readJournalIndex(sessionId: string): Promise<JournalIndex | null> {
     await this.ensureConnected();
+    try {
+      const response = await this.sendCommand({
+        message: 'read_file',
+        sessionId,
+        file: 'journal_index.jsonl',
+      });
+      return parseJournalJsonl(response.content as string);
+    } catch {
+      return this.readLegacyJournalIndex(sessionId);
+    }
+  }
+
+  private async readLegacyJournalIndex(
+    sessionId: string,
+  ): Promise<JournalIndex | null> {
     try {
       const response = await this.sendCommand({
         message: 'read_file',

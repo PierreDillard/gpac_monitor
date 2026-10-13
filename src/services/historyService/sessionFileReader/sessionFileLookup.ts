@@ -10,8 +10,8 @@ export interface SessionFileLookup {
 }
 
 const SESSION_ROOT_ENTRIES = new Set(
-  `snapshot.json manifest.json journal_index.json session.json
-   events_index.json events.jsonl done chunks logs checkpoints segments`.split(
+  `snapshot.json manifest.json journal_index.json journal_index.jsonl session.json
+   events_index.jsonl events.jsonl done chunks logs checkpoints segments`.split(
     /\s+/,
   ),
 );

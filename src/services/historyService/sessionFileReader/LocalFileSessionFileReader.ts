@@ -7,7 +7,7 @@ import type {
 } from '../source/types';
 import { parseEventsJsonl } from '../loader/eventLoader';
 import { parseManifest } from '../manifestParser';
-import { parseJournalIndex } from '../journalIndexParser';
+import { parseJournalIndex, parseJournalJsonl } from '../journalIndexParser';
 import { parseSessionIndex, parseEventsIndex } from '../sessionIndexParser';
 import {
   directoryEntryLookup,
@@ -129,11 +129,13 @@ export class LocalFileSessionFileReader {
   async readEventsIndex(
     sessionId: string,
   ): Promise<ManifestEventEntry[] | null> {
-    const raw = await this.readJson(sessionId, 'events_index.json');
-    return raw ? parseEventsIndex(raw) : null;
+    const file = await this.file(sessionId, 'events_index.jsonl');
+    return file ? parseEventsIndex(parseEventsJsonl(await file.text())) : null;
   }
 
   async readJournalIndex(sessionId: string): Promise<JournalIndex | null> {
+    const file = await this.file(sessionId, 'journal_index.jsonl');
+    if (file) return parseJournalJsonl(await file.text());
     const raw = await this.readJson(sessionId, 'journal_index.json');
     return raw ? parseJournalIndex(raw) : null;
   }
