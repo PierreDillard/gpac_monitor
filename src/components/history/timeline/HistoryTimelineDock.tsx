@@ -35,6 +35,7 @@ interface HistoryTimelineDockProps {
   onPlay: () => void;
   onPause: () => void;
   onSeek: (targetTimestampUs: number) => void;
+  onSeekToSessionTime: (sessionTimeUs: number) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   canZoomIn: boolean;
@@ -61,6 +62,7 @@ const HistoryTimelineDock = ({
   onPlay,
   onPause,
   onSeek,
+  onSeekToSessionTime,
   onZoomIn,
   onZoomOut,
   canZoomIn,
@@ -148,6 +150,7 @@ const HistoryTimelineDock = ({
           onZoomOut={onZoomOut}
           canZoomIn={canZoomIn}
           canZoomOut={canZoomOut}
+          onSeekToSessionTime={onSeekToSessionTime}
         />
       </div>
     </Resizable>

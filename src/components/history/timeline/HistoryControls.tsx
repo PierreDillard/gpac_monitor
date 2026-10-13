@@ -32,7 +32,7 @@ const HistoryControls = () => {
   const maxDockHeight = useMemo(() => Math.round(window.innerHeight * 0.6), []);
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>('all');
   const allEvents = useTimelineEvents();
-  const { viewport, zoomAround } = useTimelineViewport(durationUs);
+  const { viewport, zoomAround, centerOn } = useTimelineViewport(durationUs);
 
   const filteredEvents = useMemo(
     () =>
@@ -70,6 +70,10 @@ const HistoryControls = () => {
       onPlay={play}
       onPause={pause}
       onSeek={seek}
+      onSeekToSessionTime={(sessionTimeUs) => {
+        seek(sessionStartUs + sessionTimeUs);
+        centerOn(sessionTimeUs);
+      }}
       lanes={lanes}
       elapsedUs={elapsedUs}
       playheadPercent={playheadPercent}
