@@ -20,7 +20,7 @@ export function clampViewport(viewport: TimelineViewport): TimelineViewport {
   return { ...viewport, visibleStartUs, visibleDurationUs };
 }
 
-/** Zooms the window by zoomFactor while keeping anchorTimeUs at the same ratio. */
+/** Zooms the window by zoomFactor and centers it on anchorTimeUs, clamped to the session. */
 export function zoomViewportAroundTime(
   viewport: TimelineViewport,
   anchorTimeUs: number,
@@ -33,9 +33,7 @@ export function zoomViewportAroundTime(
       viewport.visibleDurationUs * zoomFactor,
     ),
   );
-  const anchorRatio =
-    (anchorTimeUs - viewport.visibleStartUs) / viewport.visibleDurationUs;
-  const visibleStartUs = anchorTimeUs - nextVisibleDurationUs * anchorRatio;
+  const visibleStartUs = anchorTimeUs - nextVisibleDurationUs / 2;
   return clampViewport({
     ...viewport,
     visibleStartUs,
