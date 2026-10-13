@@ -40,6 +40,9 @@ jobs:
             -rmt -rmt-port=6390 -rmt-localhost -rmt-path=/srv/server.js -logs=rmtws@info \
             avgen reframer:rt=on inspect:allp
 
+      - name: Monitor config
+        run: timeout 20 node server/tests/integration/monitorConfig.mjs
+
       - name: Query filter graph
         run: timeout 20 node server/tests/integration/getAllFilters.mjs
 

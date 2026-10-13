@@ -1,5 +1,8 @@
 import { useMemo, useCallback, useRef } from 'react';
-import { OverlayScrollbarsComponent } from 'overlayscrollbars-react';
+import {
+  OverlayScrollbarsComponent,
+  OverlayScrollbarsComponentRef,
+} from 'overlayscrollbars-react';
 import { useAppSelector, useAppDispatch } from '@/shared/hooks/redux';
 import { useDataMode } from '@/shared/hooks/data/useDataMode';
 import {
@@ -25,6 +28,7 @@ import { Widget } from '@/types/ui/widget';
 import { getWidgetDefinition } from '../../widget/registry';
 import SidebarCloseButton from '../sidebar/SidebarCloseButton';
 import { toGridLayoutItem } from './gridLayoutItem';
+import DashboardScrollToggle from './DashboardScrollToggle';
 import {
   applyRowWidthShare,
   changedLayoutItems,
@@ -45,6 +49,11 @@ const DashboardLayout = () => {
   const isSidebarOpen = useAppSelector((state) => state.layout.isSidebarOpen);
   const isDraggingRef = useRef(false);
   const resizeStartLayoutRef = useRef<Layout[]>([]);
+  const scrollAreaRef = useRef<OverlayScrollbarsComponentRef<'main'>>(null);
+  const hasDetachedWidget = useMemo(
+    () => activeWidgets.some((widget) => widget.isDetached),
+    [activeWidgets],
+  );
   const { isHistory } = useDataMode();
   const rowHeight = useMemo(() => {
     const headerHeight = isHistory ? HISTORY_HEADER_HEIGHT_PX : 64;
@@ -106,6 +115,7 @@ const DashboardLayout = () => {
         )}
 
         <OverlayScrollbarsComponent
+          ref={scrollAreaRef}
           element="main"
           options={{ scrollbars: { autoHide: 'leave', autoHideDelay: 400 } }}
           className="flex-1 h-full min-h-0 pb-4 pt-2 pl-0 transition-transform duration-300 will-change-transform"
@@ -184,6 +194,9 @@ const DashboardLayout = () => {
             {activeWidgets.map(renderWidget)}
           </ResponsiveGridLayout>
         </OverlayScrollbarsComponent>
+        {hasDetachedWidget && (
+          <DashboardScrollToggle scrollAreaRef={scrollAreaRef} />
+        )}
       </div>
       <HistoryControls />
     </div>
