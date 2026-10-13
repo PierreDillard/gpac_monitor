@@ -39,18 +39,23 @@ describe('HistorySessionWriter proxy delegation', () => {
 });
 
 describe('HistorySessionWriter root-level event/journal index', () => {
-  it('accumulates addEventIndex/recordJournalFact at the root without touching the segment writer', () => {
+  it('appends one JSONL line per marker to the root indexes', () => {
+    const written = {};
+    const openSpy = vi.spyOn(std, 'open').mockImplementation((path) => {
+      written[path] = '';
+      return {
+        puts: (content) => { written[path] += content; },
+        flush: () => {},
+        close: () => {},
+      };
+    });
     const writer = new HistorySessionWriter('test-history', 'sessC');
-    const openSpy = vi.spyOn(std, 'open');
 
     writer.addEventIndex(1000, 'graph-change');
     writer.recordJournalFact(1000, 1);
 
-    expect(openSpy).not.toHaveBeenCalled();
-    expect(writer._eventsIndex).toEqual([{ ts_us: 1000, type: 'graph-change' }]);
-    expect(writer._journalTsUs).toEqual([1000]);
-    expect(writer._journalTypes).toEqual([1]);
-    expect(writer._segmentWriter).toBeNull();
+    expect(written['test-history/sessC/events_index.jsonl']).toBe('{"ts_us":1000,"type":"graph-change"}\n');
+    expect(written['test-history/sessC/journal_index.jsonl']).toBe('{"ts_us":1000,"type":1}\n');
 
     openSpy.mockRestore();
   });
@@ -98,16 +103,15 @@ describe('HistorySessionWriter session.json', () => {
     expect(writer._segments[0]).toMatchObject({ toUs: 2000, done: true });
   });
 
-  it('does not write events_index.json/journal_index.json when nothing was recorded', () => {
-    const writer = new HistorySessionWriter('test-history', 'sessG');
-    writer.writeEvent('{"a":1}', 1000);
-
+  it('does not open the root indexes when no marker was recorded', () => {
     const openSpy = vi.spyOn(std, 'open');
-    writer.writeSessionIndex();
+    const writer = new HistorySessionWriter('test-history', 'sessG');
+
+    writer.writeEvent('{"a":1}', 1000);
+    writer.close();
 
     const paths = openSpy.mock.calls.map(([path]) => path);
-    expect(paths.some((path) => path.endsWith('events_index.json.tmp'))).toBe(false);
-    expect(paths.some((path) => path.endsWith('journal_index.json.tmp'))).toBe(false);
+    expect(paths.some((path) => path.endsWith('_index.jsonl'))).toBe(false);
 
     openSpy.mockRestore();
   });
@@ -122,6 +126,7 @@ describe('HistorySessionWriter session.json time-only root index', () => {
       written[path] = '';
       return {
         puts: (content) => { written[path] += content; },
+        flush: () => {},
         close: () => {},
       };
     });
@@ -162,6 +167,7 @@ describe('HistorySessionWriter session.json time-only root index', () => {
       written[path] = '';
       return {
         puts: (content) => { written[path] += content; },
+        flush: () => {},
         close: () => {},
       };
     });

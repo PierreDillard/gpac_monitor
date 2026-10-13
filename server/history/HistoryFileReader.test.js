@@ -4,12 +4,13 @@ import * as os from 'os';
 import { HistoryFileReader } from './HistoryFileReader.js';
 
 describe('HistoryFileReader segmented session whitelist', () => {
-  it('allows reading session.json and events_index.json at the session root', () => {
+  it('allows reading session.json and both JSONL root indexes at the session root', () => {
     const reader = new HistoryFileReader('test-history');
     vi.spyOn(std, 'open').mockReturnValue({ readAsString: () => '{}', close: () => {} });
 
     expect(reader.readFile('2026-01-01_00-00-00', 'session.json').ok).toBe(true);
-    expect(reader.readFile('2026-01-01_00-00-00', 'events_index.json').ok).toBe(true);
+    expect(reader.readFile('2026-01-01_00-00-00', 'events_index.jsonl').ok).toBe(true);
+    expect(reader.readFile('2026-01-01_00-00-00', 'journal_index.jsonl').ok).toBe(true);
 
     vi.restoreAllMocks();
   });

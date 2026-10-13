@@ -1,6 +1,6 @@
 import * as os from 'os';
 import { HistoryWriter, writeFileAtomic, formatSessionId } from './HistoryWriter.js';
-import { serializeJournalIndex } from './helpers/journalIndex.js';
+import { AppendIndex } from './helpers/AppendIndex.js';
 import {
     SEGMENT_DURATION_US,
     DEFAULT_RETENTION_MAX_SEGMENTS,
@@ -31,7 +31,7 @@ function removeSegmentDir(sessionDir, segmentDir) {
 }
 
 /**
- * HistorySessionWriter - root orchestrator: owns session.json/events_index.json/journal_index.json,
+ * HistorySessionWriter - root orchestrator: owns session.json and the append-only events_index.jsonl/journal_index.jsonl,
  * delegates chunk/log/checkpoint writes to the current segment's HistoryWriter, handles rollover/retention.
  * @param {string} historyDir
  * @param {string} [sessionId]
@@ -57,9 +57,8 @@ function HistorySessionWriter(historyDir, sessionId, options) {
     this._lastEventUs = null;
     this._closed = false;
     this._sessionJsonWritten = false;
-    this._eventsIndex = [];
-    this._journalTsUs = [];
-    this._journalTypes = [];
+    this._eventsIndex = new AppendIndex(`${dir}/events_index.jsonl`);
+    this._journalIndex = new AppendIndex(`${dir}/journal_index.jsonl`);
 
     this._init = function() {
         if (this._initialized) return;
@@ -119,24 +118,13 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         }
     };
 
-    this._writeEventsIndex = function() {
-        if (this._eventsIndex.length === 0) return;
-        const sorted = [...this._eventsIndex].sort((a, b) => a.ts_us - b.ts_us);
-        writeFileAtomic(`${dir}/events_index.json`, JSON.stringify(sorted) + '\n');
-    };
-
-    this._writeJournalIndex = function() {
-        if (this._journalTsUs.length === 0) return;
-        writeFileAtomic(
-            `${dir}/journal_index.json`,
-            JSON.stringify(serializeJournalIndex(this._journalTsUs, this._journalTypes)) + '\n'
-        );
-    };
-
     this.writeSessionIndex = function() {
-        this._writeEventsIndex();
-        this._writeJournalIndex();
         this._writeSessionJson();
+    };
+
+    this._flushIndexes = function() {
+        this._eventsIndex.flush();
+        this._journalIndex.flush();
     };
 
     this._writeSessionJson = function() {
@@ -175,6 +163,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         this._segmentWriter.writeLog(jsonString, tsUs);
         this._checkRollover(tsUs);
         this._ensureSessionJson();
+        this._flushIndexes();
     };
 
     this.writeEvent = function(jsonString, tsUs) {
@@ -183,6 +172,7 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         const rotated = this._segmentWriter.writeEvent(jsonString, tsUs);
         this._checkRollover(tsUs);
         this._ensureSessionJson();
+        this._flushIndexes();
         return rotated;
     };
 
@@ -203,13 +193,14 @@ function HistorySessionWriter(historyDir, sessionId, options) {
 
     this.addEventIndex = function(tsUs, type, metadata) {
         if (!Number.isFinite(tsUs)) return;
-        this._eventsIndex.push(metadata ? { ts_us: tsUs, type, ...metadata } : { ts_us: tsUs, type });
+        this._init();
+        this._eventsIndex.append(metadata ? { ts_us: tsUs, type, ...metadata } : { ts_us: tsUs, type });
     };
 
     this.recordJournalFact = function(tsUs, type) {
         if (!Number.isFinite(tsUs)) return;
-        this._journalTsUs.push(tsUs);
-        this._journalTypes.push(type);
+        this._init();
+        this._journalIndex.append({ ts_us: tsUs, type });
     };
 
     this.close = function() {
@@ -219,6 +210,8 @@ function HistorySessionWriter(historyDir, sessionId, options) {
         segment.toUs = this._lastEventUs;
         segment.done = true;
         this._closed = true;
+        this._eventsIndex.close();
+        this._journalIndex.close();
         this.writeSessionIndex();
     };
 }
