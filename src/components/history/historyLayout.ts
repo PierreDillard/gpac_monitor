@@ -5,6 +5,8 @@ export const TIMELINE_DOCK_DEFAULT_HEIGHT_PX = 156;
 
 export const LANE_GUTTER_WIDTH_PX = 64;
 
+export const CLICK_MAX_DISTANCE_PX = 3;
+
 export const EVENTS_PANEL_WIDTH_PX = 288;
 export const EVENTS_PANEL_MIN_WIDTH_PX = 288;
 export const EVENTS_PANEL_MAX_WIDTH_PX = 560;

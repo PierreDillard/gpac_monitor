@@ -23,6 +23,8 @@ interface TimelineProps {
   onPause: () => void;
   onSeek: (targetTimestampUs: number) => void;
   onPan: (deltaUs: number) => void;
+  onRulerClick?: () => void;
+  railOverlay?: ReactNode;
   belowRailContent?: ReactNode;
 }
 
@@ -37,6 +39,8 @@ const Timeline = ({
   onPause,
   onSeek,
   onPan,
+  onRulerClick,
+  railOverlay,
   belowRailContent,
 }: TimelineProps) => {
   const relativeTimeUs = currentTimeUs - sessionStartUs;
@@ -98,6 +102,8 @@ const Timeline = ({
             formatTooltip={formatTooltip}
             disabled={!canPlay}
             timeRuler={timeRuler}
+            onRulerClick={onRulerClick}
+            railOverlay={railOverlay}
             onRulerDrag={(deltaPixels, rulerWidthPx) =>
               onPan(
                 -pixelsToDurationUs(

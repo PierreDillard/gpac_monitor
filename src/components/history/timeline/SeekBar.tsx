@@ -1,6 +1,8 @@
 import * as Slider from '@radix-ui/react-slider';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { TimeRuler } from '@/utils/history/generateTimeTicks';
+import { CLICK_MAX_DISTANCE_PX } from '../historyLayout';
 
 interface SeekBarProps {
   progressPercent: number;
@@ -9,6 +11,8 @@ interface SeekBarProps {
   disabled?: boolean;
   timeRuler?: TimeRuler;
   onRulerDrag?: (deltaPixels: number, rulerWidthPx: number) => void;
+  onRulerClick?: () => void;
+  railOverlay?: ReactNode;
 }
 
 const SeekBar = ({
@@ -18,8 +22,13 @@ const SeekBar = ({
   disabled,
   timeRuler,
   onRulerDrag,
+  onRulerClick,
+  railOverlay,
 }: SeekBarProps) => {
-  const rulerDragClientXRef = useRef<number | null>(null);
+  const rulerDragRef = useRef<{ startX: number; lastX: number } | null>(null);
+  const endRulerDrag = () => {
+    rulerDragRef.current = null;
+  };
   const [previewPercent, setPreviewPercent] = useState<number | null>(null);
   const [pendingSeekPercent, setPendingSeekPercent] = useState<number | null>(
     null,
@@ -76,55 +85,64 @@ const SeekBar = ({
         </Slider.Track>
         <Slider.Thumb className="block w-0.5 h-6 rounded-full bg-white/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-history" />
       </Slider.Root>
+      {railOverlay && (
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          {railOverlay}
+        </div>
+      )}
 
       {timeRuler && (
         <div
-          className="relative rounded-sm cursor-grab active:cursor-grabbing select-none touch-none focus:outline-none focus:ring-2 focus:ring-history"
-          tabIndex={0}
+          className="relative cursor-grab active:cursor-grabbing select-none touch-none"
           onPointerDown={(event) => {
-            event.currentTarget.focus();
             event.currentTarget.setPointerCapture(event.pointerId);
-            rulerDragClientXRef.current = event.clientX;
+            rulerDragRef.current = {
+              startX: event.clientX,
+              lastX: event.clientX,
+            };
           }}
           onPointerMove={(event) => {
-            if (rulerDragClientXRef.current === null) return;
-            const deltaPixels = event.clientX - rulerDragClientXRef.current;
-            rulerDragClientXRef.current = event.clientX;
+            const drag = rulerDragRef.current;
+            if (!drag) return;
+            const deltaPixels = event.clientX - drag.lastX;
+            drag.lastX = event.clientX;
             onRulerDrag?.(
               deltaPixels,
               event.currentTarget.getBoundingClientRect().width,
             );
           }}
-          onPointerUp={() => {
-            rulerDragClientXRef.current = null;
+          onPointerUp={(event) => {
+            const drag = rulerDragRef.current;
+            endRulerDrag();
+            if (
+              drag &&
+              Math.abs(event.clientX - drag.startX) < CLICK_MAX_DISTANCE_PX
+            )
+              onRulerClick?.();
           }}
-          onPointerCancel={() => {
-            rulerDragClientXRef.current = null;
-          }}
+          onPointerCancel={endRulerDrag}
         >
           <div
             className="absolute inset-y-0 w-px -translate-x-1/2 bg-white/30 pointer-events-none z-10"
             style={{ left: `${displayPercent}%` }}
           />
-          {timeRuler && (
-            <div className="relative h-2">
-              {timeRuler.minor.map((tick) => (
-                <div
-                  key={tick.positionPercent}
-                  className="absolute bottom-0 w-px h-1.5 bg-white/20 pointer-events-none"
-                  style={{ left: `${tick.positionPercent}%` }}
-                />
-              ))}
-              {timeRuler.major.map((tick) => (
-                <div
-                  key={tick.positionPercent}
-                  className="absolute bottom-0 w-px h-3 bg-white/35 pointer-events-none"
-                  style={{ left: `${tick.positionPercent}%` }}
-                />
-              ))}
-            </div>
-          )}
-          {timeRuler && timeRuler.major.length > 0 && (
+          <div className="relative h-2">
+            {timeRuler.minor.map((tick) => (
+              <div
+                key={tick.positionPercent}
+                className="absolute bottom-0 w-px h-1.5 bg-white/20 pointer-events-none"
+                style={{ left: `${tick.positionPercent}%` }}
+              />
+            ))}
+            {timeRuler.major.map((tick) => (
+              <div
+                key={tick.positionPercent}
+                className="absolute bottom-0 w-px h-3 bg-white/35 pointer-events-none"
+                style={{ left: `${tick.positionPercent}%` }}
+              />
+            ))}
+          </div>
+          {timeRuler.major.length > 0 && (
             <div className="relative h-7">
               {timeRuler.major.map((tick, index) => (
                 <span

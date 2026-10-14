@@ -13,6 +13,7 @@ import { useReplayNotifications } from '../hooks/useReplayNotifications';
 import { MIN_VISIBLE_DURATION_US } from '@/utils/history/timelineViewport';
 import { getCursorPercent } from '@/utils/history/timelineViewportView';
 import HistoryTimelineDock from './HistoryTimelineDock';
+import ZoomTargetOverlay from './ZoomTargetOverlay';
 
 const HistoryControls = () => {
   const { mode } = useDataSource();
@@ -32,8 +33,18 @@ const HistoryControls = () => {
   const maxDockHeight = useMemo(() => Math.round(window.innerHeight * 0.6), []);
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>('all');
   const allEvents = useTimelineEvents();
-  const { viewport, zoomAround, centerOn, panBy } =
-    useTimelineViewport(durationUs);
+  const {
+    viewport,
+    zoomTarget,
+    zoomTargetVisible,
+    setZoomTargetVisible,
+    zoomAround,
+    centerOn,
+    panBy,
+    moveZoomTarget,
+    resizeZoomTarget,
+    zoomToTarget,
+  } = useTimelineViewport(durationUs);
 
   const filteredEvents = useMemo(
     () =>
@@ -81,7 +92,19 @@ const HistoryControls = () => {
       elapsedUs={elapsedUs}
       playheadPercent={playheadPercent}
       onPan={panBy}
-      onZoomIn={() => zoomAround(windowCenterUs, 0.5)}
+      onRulerClick={() => setZoomTargetVisible(true)}
+      railOverlay={
+        zoomTargetVisible && (
+          <ZoomTargetOverlay
+            viewport={viewport}
+            zoomTarget={zoomTarget}
+            onMove={moveZoomTarget}
+            onResizeEdge={resizeZoomTarget}
+            onHide={() => setZoomTargetVisible(false)}
+          />
+        )
+      }
+      onZoomIn={zoomToTarget}
       onZoomOut={() => zoomAround(windowCenterUs, 2)}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}

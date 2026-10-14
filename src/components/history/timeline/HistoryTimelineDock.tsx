@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Resizable, ResizeCallbackData } from 'react-resizable';
 import {
   TIMELINE_DOCK_HEIGHT_PX,
@@ -37,6 +38,8 @@ interface HistoryTimelineDockProps {
   onSeek: (targetTimestampUs: number) => void;
   onSeekToSessionTime: (sessionTimeUs: number) => void;
   onPan: (deltaUs: number) => void;
+  onRulerClick: () => void;
+  railOverlay: ReactNode;
   onZoomIn: () => void;
   onZoomOut: () => void;
   canZoomIn: boolean;
@@ -65,6 +68,8 @@ const HistoryTimelineDock = ({
   onSeek,
   onSeekToSessionTime,
   onPan,
+  onRulerClick,
+  railOverlay,
   onZoomIn,
   onZoomOut,
   canZoomIn,
@@ -135,6 +140,8 @@ const HistoryTimelineDock = ({
             onPause={onPause}
             onSeek={onSeek}
             onPan={onPan}
+            onRulerClick={onRulerClick}
+            railOverlay={railOverlay}
             belowRailContent={
               <HistoryTimelineLanes
                 lanes={lanes}
