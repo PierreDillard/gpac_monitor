@@ -1,5 +1,5 @@
-import { memo, useRef, useEffect } from 'react';
-import { LuFolderOpen } from 'react-icons/lu';
+import { memo, useRef, useEffect, useState } from 'react';
+import { LuFolderDown } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import SessionRow from './SessionRow';
@@ -22,6 +22,7 @@ const LocalFilePicker = memo(
     onSelect,
   }: LocalFilePickerProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
 
     useEffect(() => {
       if (inputRef.current) {
@@ -30,29 +31,46 @@ const LocalFilePicker = memo(
     }, []);
 
     return (
-      <div className=" border-monitor-line">
+      <div className="border-b border-monitor-line">
         <div className="px-4 py-3">
-          <p className="text-xs text-gray-500 mb-2">
-            Load from local files — or drop the history folder here
-          </p>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              if (event.target.files?.length) onFiles(event.target.files);
+          <div
+            className={`flex flex-col items-center gap-1 rounded-lg border-2 px-4 py-6 text-center transition-colors ${
+              isDraggingOver
+                ? 'border-solid border-red-400 bg-red-400/10'
+                : 'border-dashed border-gray-600'
+            }`}
+            onDragEnter={() => setIsDraggingOver(true)}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                setIsDraggingOver(false);
+              }
             }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => inputRef.current?.click()}
+            onDrop={() => setIsDraggingOver(false)}
           >
-            <LuFolderOpen className="w-3.5 h-3.5 mr-1.5" />
-            Browse history folder
-          </Button>
+            <LuFolderDown className="w-6 h-6 text-gray-400" />
+            <p className="text-sm text-white/85">
+              {isDraggingOver
+                ? 'Release to open'
+                : 'Drop a history folder here'}
+            </p>
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                if (event.target.files?.length) onFiles(event.target.files);
+              }}
+            />
+            <Button
+              variant="link"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              className="text-gray-400"
+            >
+              or Browse folder…
+            </Button>
+          </div>
         </div>
 
         {sessions.length > 0 && (
@@ -75,7 +93,9 @@ const LocalFilePicker = memo(
           </div>
         )}
         {loadError && (
-          <p className="text-xs text-center px-3 pb-3">{loadError}</p>
+          <p className="text-xs text-red-400 text-center px-3 pb-3">
+            {loadError}
+          </p>
         )}
       </div>
     );

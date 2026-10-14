@@ -72,10 +72,18 @@ const SessionPicker = () => {
       <div className="bg-monitor-selection border-0 rounded-xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-monitor-line">
           <LuClapperboard className="w-4 h-4 text-red-400" />
-          <span className="text-sm font-semibold text-white">
+          <span className="text-sm font-semibold text-white/85">
             Select a session
           </span>
         </div>
+
+        <LocalFilePicker
+          sessions={local.sessions}
+          loadingSession={local.loadingSession}
+          loadError={local.loadError}
+          onFiles={local.openFiles}
+          onSelect={local.selectSession}
+        />
 
         <div className="px-3 py-3 ">
           <>
@@ -126,14 +134,6 @@ const SessionPicker = () => {
             )}
           </>
         </div>
-
-        <LocalFilePicker
-          sessions={local.sessions}
-          loadingSession={local.loadingSession}
-          loadError={local.loadError}
-          onFiles={local.openFiles}
-          onSelect={local.selectSession}
-        />
       </div>
     </div>
   );
