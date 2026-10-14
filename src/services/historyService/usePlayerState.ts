@@ -65,5 +65,11 @@ export function usePlayerState() {
     seek: (targetTimestampUs: number) => {
       historyController.seek(targetTimestampUs).catch(console.error);
     },
+    playFrom: (targetTimestampUs: number) => {
+      historyController
+        .seek(targetTimestampUs)
+        .then(() => historyController.play())
+        .catch(console.error);
+    },
   };
 }

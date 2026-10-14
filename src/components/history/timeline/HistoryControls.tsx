@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDataSource } from '@/services/dataSource/DataSourceContext';
 import { usePlayerState } from '@/services/historyService/usePlayerState';
 import { useTimelineEvents } from '@/services/historyService/useTimelineEvents';
@@ -12,6 +12,10 @@ import { useTimelineLanes } from '../hooks/useTimelineLanes';
 import { useReplayNotifications } from '../hooks/useReplayNotifications';
 import { MIN_VISIBLE_DURATION_US } from '@/utils/history/timelineViewport';
 import { getCursorPercent } from '@/utils/history/timelineViewportView';
+import {
+  getPlayStartUs,
+  getPagedStartUs,
+} from '@/utils/history/playbackWindow';
 import HistoryTimelineDock from './HistoryTimelineDock';
 import ZoomTargetOverlay from './ZoomTargetOverlay';
 
@@ -23,6 +27,7 @@ const HistoryControls = () => {
     durationUs,
     sessionStartUs,
     play,
+    playFrom,
     pause,
     seek,
   } = usePlayerState();
@@ -64,6 +69,18 @@ const HistoryControls = () => {
   const canZoomIn = viewport.visibleDurationUs > MIN_VISIBLE_DURATION_US;
   const canZoomOut = viewport.visibleDurationUs < viewport.sessionDurationUs;
 
+  useEffect(() => {
+    if (state !== 'playing') return;
+    const pagedStartUs = getPagedStartUs(viewport, elapsedUs);
+    if (pagedStartUs !== null) panBy(pagedStartUs - viewport.visibleStartUs);
+  }, [state, viewport, elapsedUs, panBy]);
+
+  const handlePlay = () => {
+    const startUs = getPlayStartUs(viewport, elapsedUs, state === 'done');
+    if (startUs === elapsedUs) play();
+    else playFrom(sessionStartUs + startUs);
+  };
+
   if (mode !== 'history') return null;
 
   return (
@@ -81,7 +98,7 @@ const HistoryControls = () => {
       durationUs={durationUs}
       viewport={viewport}
       isPlaying={state === 'playing'}
-      onPlay={play}
+      onPlay={handlePlay}
       onPause={pause}
       onSeek={seek}
       onSeekToSessionTime={(sessionTimeUs) => {
