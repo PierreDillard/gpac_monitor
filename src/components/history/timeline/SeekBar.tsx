@@ -39,7 +39,7 @@ const SeekBar = ({
   return (
     <div className="relative flex-1 bg-white/[0.04] rounded-sm border-y border-white/5">
       <div
-        className="absolute -top-5 -translate-x-1/2 text-gray-200 text-[0.714rem] whitespace-nowrap z-10 bg-black/30 px-1 rounded-sm pointer-events-none"
+        className="absolute -top-5 -translate-x-1/2 text-gray-200 text-[0.714rem] whitespace-nowrap tabular-nums z-10 bg-black/30 px-1 rounded-sm pointer-events-none"
         style={{ left: `${capsulePercent}%` }}
       >
         {formatTooltip(capsulePercent)}
