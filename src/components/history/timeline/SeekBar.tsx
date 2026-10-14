@@ -1,5 +1,5 @@
 import * as Slider from '@radix-ui/react-slider';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TimeRuler } from '@/utils/history/generateTimeTicks';
 
 interface SeekBarProps {
@@ -8,6 +8,7 @@ interface SeekBarProps {
   formatTooltip: (positionPercent: number) => string;
   disabled?: boolean;
   timeRuler?: TimeRuler;
+  onRulerDrag?: (deltaPixels: number, rulerWidthPx: number) => void;
 }
 
 const SeekBar = ({
@@ -16,7 +17,9 @@ const SeekBar = ({
   formatTooltip,
   disabled,
   timeRuler,
+  onRulerDrag,
 }: SeekBarProps) => {
+  const rulerDragClientXRef = useRef<number | null>(null);
   const [previewPercent, setPreviewPercent] = useState<number | null>(null);
   const [pendingSeekPercent, setPendingSeekPercent] = useState<number | null>(
     null,
@@ -75,7 +78,30 @@ const SeekBar = ({
       </Slider.Root>
 
       {timeRuler && (
-        <div className="relative">
+        <div
+          className="relative rounded-sm cursor-grab active:cursor-grabbing select-none touch-none focus:outline-none focus:ring-2 focus:ring-history"
+          tabIndex={0}
+          onPointerDown={(event) => {
+            event.currentTarget.focus();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            rulerDragClientXRef.current = event.clientX;
+          }}
+          onPointerMove={(event) => {
+            if (rulerDragClientXRef.current === null) return;
+            const deltaPixels = event.clientX - rulerDragClientXRef.current;
+            rulerDragClientXRef.current = event.clientX;
+            onRulerDrag?.(
+              deltaPixels,
+              event.currentTarget.getBoundingClientRect().width,
+            );
+          }}
+          onPointerUp={() => {
+            rulerDragClientXRef.current = null;
+          }}
+          onPointerCancel={() => {
+            rulerDragClientXRef.current = null;
+          }}
+        >
           <div
             className="absolute inset-y-0 w-px -translate-x-1/2 bg-white/30 pointer-events-none z-10"
             style={{ left: `${displayPercent}%` }}

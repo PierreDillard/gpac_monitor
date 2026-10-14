@@ -36,6 +36,7 @@ interface HistoryTimelineDockProps {
   onPause: () => void;
   onSeek: (targetTimestampUs: number) => void;
   onSeekToSessionTime: (sessionTimeUs: number) => void;
+  onPan: (deltaUs: number) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   canZoomIn: boolean;
@@ -63,6 +64,7 @@ const HistoryTimelineDock = ({
   onPause,
   onSeek,
   onSeekToSessionTime,
+  onPan,
   onZoomIn,
   onZoomOut,
   canZoomIn,
@@ -132,6 +134,7 @@ const HistoryTimelineDock = ({
             onPlay={onPlay}
             onPause={onPause}
             onSeek={onSeek}
+            onPan={onPan}
             belowRailContent={
               <HistoryTimelineLanes
                 lanes={lanes}

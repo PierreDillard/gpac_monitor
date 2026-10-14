@@ -3,6 +3,7 @@ import {
   getVisibleEvents,
   getCursorPercent,
   clusterVisibleEvents,
+  pixelsToDurationUs,
   type PositionedEvent,
 } from '../timelineViewportView';
 import type { TimelineViewport } from '../timelineViewport';
@@ -97,5 +98,28 @@ describe('clusterVisibleEvents', () => {
       fromUs: 0,
       toUs: (count - 1) * 100,
     });
+  });
+});
+
+describe('pixelsToDurationUs', () => {
+  const sessionDurationUs = 72 * 3600 * 1_000_000;
+
+  it('maps a click in the middle of the bar to mid-session', () => {
+    expect(pixelsToDurationUs(400, 800, sessionDurationUs)).toBe(
+      36 * 3600 * 1_000_000,
+    );
+  });
+
+  it('maps a drag of 10% of the width, in both directions', () => {
+    expect(pixelsToDurationUs(80, 800, sessionDurationUs)).toBeCloseTo(
+      7.2 * 3600 * 1_000_000,
+    );
+    expect(pixelsToDurationUs(-80, 800, sessionDurationUs)).toBeCloseTo(
+      -7.2 * 3600 * 1_000_000,
+    );
+  });
+
+  it('returns 0 when the bar has no width', () => {
+    expect(pixelsToDurationUs(50, 0, sessionDurationUs)).toBe(0);
   });
 });

@@ -23,6 +23,12 @@ export const toPercent = (
   ((sessionTimeUs - viewport.visibleStartUs) / viewport.visibleDurationUs) *
   100;
 
+export const pixelsToDurationUs = (
+  pixels: number,
+  barWidthPx: number,
+  sessionDurationUs: number,
+): number => (barWidthPx > 0 ? (pixels / barWidthPx) * sessionDurationUs : 0);
+
 /** Keeps events inside the visible window and positions them relative to it. */
 export function getVisibleEvents(
   viewport: TimelineViewport,

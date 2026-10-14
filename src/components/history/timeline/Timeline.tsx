@@ -5,7 +5,10 @@ import SeekBar from './SeekBar';
 import { LANE_GUTTER_WIDTH_PX } from '../historyLayout';
 import { formatCompactTime } from '@/utils/formatting/time';
 import { generateWindowTimeTicks } from '@/utils/history/generateTimeTicks';
-import { getCursorPercent } from '@/utils/history/timelineViewportView';
+import {
+  getCursorPercent,
+  pixelsToDurationUs,
+} from '@/utils/history/timelineViewportView';
 import type { TimelineViewport } from '@/utils/history/timelineViewport';
 import { FaCirclePlay } from 'react-icons/fa6';
 
@@ -19,6 +22,7 @@ interface TimelineProps {
   onPlay: () => void;
   onPause: () => void;
   onSeek: (targetTimestampUs: number) => void;
+  onPan: (deltaUs: number) => void;
   belowRailContent?: ReactNode;
 }
 
@@ -32,6 +36,7 @@ const Timeline = ({
   onPlay,
   onPause,
   onSeek,
+  onPan,
   belowRailContent,
 }: TimelineProps) => {
   const relativeTimeUs = currentTimeUs - sessionStartUs;
@@ -93,6 +98,15 @@ const Timeline = ({
             formatTooltip={formatTooltip}
             disabled={!canPlay}
             timeRuler={timeRuler}
+            onRulerDrag={(deltaPixels, rulerWidthPx) =>
+              onPan(
+                -pixelsToDurationUs(
+                  deltaPixels,
+                  rulerWidthPx,
+                  viewport.visibleDurationUs,
+                ),
+              )
+            }
           />
         </div>
       </div>

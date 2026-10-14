@@ -32,7 +32,8 @@ const HistoryControls = () => {
   const maxDockHeight = useMemo(() => Math.round(window.innerHeight * 0.6), []);
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>('all');
   const allEvents = useTimelineEvents();
-  const { viewport, zoomAround, centerOn } = useTimelineViewport(durationUs);
+  const { viewport, zoomAround, centerOn, panBy } =
+    useTimelineViewport(durationUs);
 
   const filteredEvents = useMemo(
     () =>
@@ -47,6 +48,8 @@ const HistoryControls = () => {
   const elapsedUs = Math.max(0, Math.min(playheadSessionUs, durationUs));
   const playheadPercent = getCursorPercent(viewport, elapsedUs);
 
+  const windowCenterUs =
+    viewport.visibleStartUs + viewport.visibleDurationUs / 2;
   const canZoomIn = viewport.visibleDurationUs > MIN_VISIBLE_DURATION_US;
   const canZoomOut = viewport.visibleDurationUs < viewport.sessionDurationUs;
 
@@ -77,8 +80,9 @@ const HistoryControls = () => {
       lanes={lanes}
       elapsedUs={elapsedUs}
       playheadPercent={playheadPercent}
-      onZoomIn={() => zoomAround(playheadSessionUs, 0.5)}
-      onZoomOut={() => zoomAround(playheadSessionUs, 2)}
+      onPan={panBy}
+      onZoomIn={() => zoomAround(windowCenterUs, 0.5)}
+      onZoomOut={() => zoomAround(windowCenterUs, 2)}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
     />
