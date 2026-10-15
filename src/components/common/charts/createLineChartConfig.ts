@@ -9,6 +9,7 @@ export interface LineChartConfigOptions {
   leftAxis?: AxisConfig;
   rightAxis?: AxisConfig;
   formatX: (v: number) => string;
+  formatAxisX?: (v: number) => string;
   /** @deprecated use leftAxis.formatY */
   formatY?: (v: number) => string;
   onEndLabels?: (labels: EndLabelInfo[]) => void;
@@ -24,6 +25,7 @@ export const createLineChartConfig = ({
   rightAxis,
   formatY = String,
   formatX,
+  formatAxisX = formatX,
   onEndLabels,
   width,
   height,
@@ -110,7 +112,8 @@ export const createLineChartConfig = ({
         ticks: { stroke: '#6ee7b7', size: 5, width: 1 },
         font: '10px monospace',
         size: 50,
-        values: (_u: uPlot, vals: number[]) => vals.map((v) => formatX(v)),
+        space: 80,
+        values: (_u: uPlot, vals: number[]) => vals.map((v) => formatAxisX(v)),
       },
       {
         stroke: leftColor,

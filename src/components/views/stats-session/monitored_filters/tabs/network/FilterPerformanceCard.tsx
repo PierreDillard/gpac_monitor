@@ -8,7 +8,11 @@ import {
   BANDWIDTH_SERIES,
   formatBw,
 } from '../../charts/config/bandwidthCombinedUplotConfig';
-import { formatMicroseconds, formatCompactTime } from '@/utils/formatting';
+import {
+  formatMicroseconds,
+  formatCompactTime,
+  formatAxisTime,
+} from '@/utils/formatting';
 import { useAdaptiveChartHeight } from '@/shared/hooks';
 import LineHistoryChart from '../../charts/LineHistoryChart';
 
@@ -111,6 +115,7 @@ export const FilterPerformanceCard = memo(
             series={filteredSeries}
             data={data}
             formatX={formatCompactTime}
+            formatAxisX={formatAxisTime}
             leftAxisFormat={formatBw}
             rightAxisFormat={formatMicroseconds}
             showCurrentTime={false}

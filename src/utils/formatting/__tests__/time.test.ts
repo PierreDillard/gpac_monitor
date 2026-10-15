@@ -24,8 +24,10 @@ describe('formatCompactTime', () => {
   it('formats 59m59s without hours', () => {
     expect(formatCompactTime(3_599_000_000)).toBe('59:59');
   });
-  it('keeps centiseconds with withCs so tooltip matches the journal', () => {
-    expect(formatCompactTime(3_350_000, true)).toBe('00:03.35');
+  it('keeps centiseconds when asked so tooltip matches the journal', () => {
+    expect(formatCompactTime(3_350_000, { centiseconds: true })).toBe(
+      '00:03.35',
+    );
     expect(formatCompactTime(3_350_000)).toBe('00:03');
   });
   it('keeps hh:mm:ss just under one day', () => {
@@ -40,16 +42,32 @@ describe('formatCompactTime', () => {
     );
   });
   it('keeps centiseconds with days', () => {
-    expect(formatCompactTime(2 * 86_400_000_000 + 470_000, true)).toBe(
-      '2d 00:00:00.47',
-    );
+    expect(
+      formatCompactTime(2 * 86_400_000_000 + 470_000, { centiseconds: true }),
+    ).toBe('2d 00:00:00.47');
   });
   it('trims a whole day to Nd only when asked', () => {
-    expect(formatCompactTime(2 * 86_400_000_000, false, true)).toBe('2d');
+    expect(formatCompactTime(2 * 86_400_000_000, { trimWholeDays: true })).toBe(
+      '2d',
+    );
     expect(formatCompactTime(2 * 86_400_000_000)).toBe('2d 00:00:00');
     expect(
-      formatCompactTime(2 * 86_400_000_000 + 3_600_000_000, false, true),
+      formatCompactTime(2 * 86_400_000_000 + 3_600_000_000, {
+        trimWholeDays: true,
+      }),
     ).toBe('2d 01:00:00');
+  });
+  it('drops days but keeps hours past 24h when days is false', () => {
+    expect(formatCompactTime(86_420_000_000, { days: false })).toBe('00:00:20');
+    expect(
+      formatCompactTime((12 * 24 * 3600 + 2 * 3600 + 9 * 60 + 15) * 1_000_000, {
+        days: false,
+      }),
+    ).toBe('02:09:15');
+  });
+  it('leaves times under 24h unchanged when days is false', () => {
+    expect(formatCompactTime(86_399_000_000, { days: false })).toBe('23:59:59');
+    expect(formatCompactTime(2_520_000_000, { days: false })).toBe('42:00');
   });
 });
 

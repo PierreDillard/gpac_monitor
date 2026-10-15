@@ -1,15 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { prepareCpuMemoryData, calculateMemoryYMax } from '../cpuMemory';
+import {
+  prepareCpuMemoryData,
+  calculateMemoryYMax,
+  formatCpuMemoryTimeLabel,
+} from '../cpuMemory';
+import { formatAxisTime, formatCompactTime } from '@/utils/formatting/time';
 
 describe('prepareCpuMemoryData', () => {
   it('returns empty arrays for empty input', () => {
     const result = prepareCpuMemoryData([]);
-    expect(result.timeLabels).toEqual([]);
     expect(result.cpuData).toEqual([]);
     expect(result.memoryData).toEqual([]);
   });
 
-  it('computes integer indices and formatted time labels from timestamps', () => {
+  it('computes integer indices from timestamps', () => {
     const points = [
       { timestamp: 1000, cpu_percent: 10, memory_mb: 50 },
       { timestamp: 2000, cpu_percent: 20, memory_mb: 60 },
@@ -18,7 +22,6 @@ describe('prepareCpuMemoryData', () => {
     const result = prepareCpuMemoryData(points);
 
     expect(result.alignedData[0]).toEqual([0, 1, 2]);
-    expect(result.timeLabels).toHaveLength(3);
     expect(result.cpuData).toEqual([10, 20, 30]);
     expect(result.memoryData).toEqual([50, 60, 70]);
   });
@@ -28,6 +31,40 @@ describe('prepareCpuMemoryData', () => {
     const result = prepareCpuMemoryData(points);
 
     expect(result.alignedData).toEqual([[0], [100], [5]]);
+  });
+});
+
+describe('formatCpuMemoryTimeLabel', () => {
+  it('keeps days in the tooltip but drops them on the axis', () => {
+    const points = [
+      {
+        timestamp: 0,
+        sessionTimeUs: (12 * 24 * 3600 + 2 * 3600 + 9 * 60 + 15) * 1_000_000,
+        cpu_percent: 5,
+        memory_mb: 100,
+      },
+    ];
+
+    expect(formatCpuMemoryTimeLabel(points, 0, formatCompactTime)).toBe(
+      '12d 02:09:15',
+    );
+    expect(formatCpuMemoryTimeLabel(points, 0, formatAxisTime)).toBe(
+      '02:09:15',
+    );
+  });
+
+  it('formats live points as seconds since the first point', () => {
+    const points = [
+      { timestamp: 1000, cpu_percent: 10, memory_mb: 50 },
+      { timestamp: 91_000, cpu_percent: 20, memory_mb: 60 },
+    ];
+
+    expect(formatCpuMemoryTimeLabel(points, 0, formatAxisTime)).toBe('0s');
+    expect(formatCpuMemoryTimeLabel(points, 1, formatAxisTime)).toBe('1m 30s');
+  });
+
+  it('returns an empty label for an index outside the data', () => {
+    expect(formatCpuMemoryTimeLabel([], 3, formatAxisTime)).toBe('');
   });
 });
 

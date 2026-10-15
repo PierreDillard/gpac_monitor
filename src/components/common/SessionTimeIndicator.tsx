@@ -22,7 +22,7 @@ const SessionTimeIndicator = ({
         {formatCompactTime(elapsedUs)}
       </span>
       <span className="text-xs 2xl:text-sm text-gray-400">
-        / {formatCompactTime(durationUs, false, true)}
+        / {formatCompactTime(durationUs, { trimWholeDays: true })}
       </span>
     </span>
   </div>

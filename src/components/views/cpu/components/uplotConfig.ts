@@ -1,16 +1,21 @@
 import type { MutableRefObject } from 'react';
 import uPlot from 'uplot';
+import {
+  formatCpuMemoryTimeLabel,
+  type CpuMemoryDataPoint,
+} from '@/utils/charts/cpuMemory';
+import { formatAxisTime, formatCompactTime } from '@/utils/formatting/time';
 
 export interface UplotConfigParams {
   memoryYAxisMax: number;
-  timeLabelsRef: MutableRefObject<string[]>;
+  dataPointsRef: MutableRefObject<CpuMemoryDataPoint[]>;
   width?: number;
   height?: number;
 }
 
 export const createCpuMemoryUplotConfig = ({
   memoryYAxisMax,
-  timeLabelsRef,
+  dataPointsRef,
   width = 100,
   height = 100,
 }: UplotConfigParams): uPlot.Options => {
@@ -61,7 +66,12 @@ export const createCpuMemoryUplotConfig = ({
             u.root.appendChild(tooltip);
           }
 
-          const time = timeLabelsRef.current[idx] ?? '--';
+          const time =
+            formatCpuMemoryTimeLabel(
+              dataPointsRef.current,
+              idx,
+              formatCompactTime,
+            ) || '--';
           const memory = u.data[1][idx]?.toFixed(2) || '--';
           const cpu = u.data[2][idx]?.toFixed(2) || '--';
 
@@ -108,8 +118,15 @@ export const createCpuMemoryUplotConfig = ({
         ticks: { stroke: '#6ee7b7', size: 5, width: 1 },
         font: '11px monospace',
         size: 50,
+        space: 80,
         values: (_u, vals) =>
-          vals.map((i) => timeLabelsRef.current[Math.round(i)] ?? ''),
+          vals.map((tickIndex) =>
+            formatCpuMemoryTimeLabel(
+              dataPointsRef.current,
+              Math.round(tickIndex),
+              formatAxisTime,
+            ),
+          ),
       },
       {
         scale: 'memory',

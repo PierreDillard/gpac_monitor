@@ -23,7 +23,7 @@ const LABEL_CHAR_WIDTH_PX = 6;
 const LABEL_GAP_PX = 12;
 
 const formatTickLabel = (tickUs: number) =>
-  formatCompactTime(tickUs, false, true);
+  formatCompactTime(tickUs, { trimWholeDays: true });
 
 export const estimateTickLabelWidthPx = (label: string) =>
   label.length * LABEL_CHAR_WIDTH_PX;

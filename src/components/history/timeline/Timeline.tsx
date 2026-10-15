@@ -75,7 +75,9 @@ const Timeline = ({
 
   const formatTooltip = useCallback(
     (positionPercent: number) =>
-      formatCompactTime(percentToSessionUs(positionPercent), true),
+      formatCompactTime(percentToSessionUs(positionPercent), {
+        centiseconds: true,
+      }),
     [percentToSessionUs],
   );
 
