@@ -29,6 +29,20 @@ export const pixelsToDurationUs = (
   sessionDurationUs: number,
 ): number => (barWidthPx > 0 ? (pixels / barWidthPx) * sessionDurationUs : 0);
 
+const firstIndexAfter = (
+  events: TimelineEvent[],
+  isBefore: (sessionTimeUs: number) => boolean,
+): number => {
+  let low = 0;
+  let high = events.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (isBefore(events[middle].sessionTimeUs)) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+};
+
 /** Keeps events inside the visible window and positions them relative to it. */
 export function getVisibleEvents(
   viewport: TimelineViewport,
@@ -36,16 +50,23 @@ export function getVisibleEvents(
 ): PositionedEvent[] {
   if (viewport.visibleDurationUs <= 0) return [];
   const visibleEndUs = viewport.visibleStartUs + viewport.visibleDurationUs;
-  return events
-    .filter(
-      (event) =>
-        event.sessionTimeUs >= viewport.visibleStartUs &&
-        event.sessionTimeUs <= visibleEndUs,
-    )
-    .map((event) => ({
+  const startIndex = firstIndexAfter(
+    events,
+    (sessionTimeUs) => sessionTimeUs < viewport.visibleStartUs,
+  );
+  const endIndex = firstIndexAfter(
+    events,
+    (sessionTimeUs) => sessionTimeUs <= visibleEndUs,
+  );
+  const visible: PositionedEvent[] = [];
+  for (let index = startIndex; index < endIndex; index++) {
+    const event = events[index];
+    visible.push({
       event,
       positionPercent: toPercent(event.sessionTimeUs, viewport),
-    }));
+    });
+  }
+  return visible;
 }
 
 /** Playhead position (0-100) inside the visible window, clamped to the edges. */
