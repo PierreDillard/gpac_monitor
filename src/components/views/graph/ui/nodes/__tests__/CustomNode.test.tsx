@@ -72,3 +72,46 @@ describe('CustomNode layering', () => {
     expect(nodeContainer?.style.backgroundColor).toContain('color-mix');
   });
 });
+
+describe('CustomNode PID handles', () => {
+  it.each(['input', 'output'])(
+    'anchors %s handles inside their PID rows in display order',
+    (direction) => {
+      const pids = [
+        { pid_index: 4, name: 'A01', stream_type: 'Audio', source_idx: 0 },
+        { pid_index: 2, name: 'V02', stream_type: 'Visual', source_idx: 0 },
+        { pid_index: 7, name: 'V03', stream_type: 'Visual', source_idx: 0 },
+      ];
+      const isInput = direction === 'input';
+      const prefix = isInput ? 'ipid' : 'opid';
+      const { container } = renderCustomNode({
+        ...baseData,
+        nb_ipid: isInput ? pids.length : 0,
+        nb_opid: isInput ? 0 : pids.length,
+        ipid: isInput ? pids : [],
+        opid: isInput ? [] : pids,
+      });
+      const handles = Array.from(container.querySelectorAll('[data-handleid]'));
+
+      expect(
+        handles.map((handle) => handle.getAttribute('data-handleid')),
+      ).toEqual(pids.map((pid) => `${prefix}-${pid.pid_index}`));
+      for (const [index, handle] of handles.entries()) {
+        const row = container.querySelector(`[title="${pids[index].name}"]`);
+        expect(row).not.toBeNull();
+        expect(row?.contains(handle)).toBe(true);
+        expect(row?.textContent).toBe(pids[index].name);
+        expect(row?.classList.contains('relative')).toBe(true);
+        expect(row?.classList.contains('truncate')).toBe(false);
+        expect(handle.classList.contains(isInput ? 'target' : 'source')).toBe(
+          true,
+        );
+        expect(
+          handle.classList.contains(
+            isInput ? 'react-flow__handle-left' : 'react-flow__handle-right',
+          ),
+        ).toBe(true);
+      }
+    },
+  );
+});
