@@ -1,6 +1,6 @@
 /**
  * Resolves a session-relative path to a File, either from a FileList
- * (<input webkitdirectory>) or lazily from a dropped directory entry.
+ *  lazily from a dropped directory entry.
  */
 export interface SessionFileLookup {
   sessionIds(): Promise<string[]>;

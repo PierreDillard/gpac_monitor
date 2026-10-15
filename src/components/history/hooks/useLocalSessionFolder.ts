@@ -36,12 +36,6 @@ export const useLocalSessionFolder = () => {
     [],
   );
 
-  const openFiles = useCallback(
-    (files: FileList) =>
-      openReader(new LocalFileSessionFileReader(Array.from(files))),
-    [openReader],
-  );
-
   const openDroppedItem = useCallback(
     (dataTransfer: DataTransfer) => {
       const entry = dataTransfer.items[0]?.webkitGetAsEntry();
@@ -85,7 +79,6 @@ export const useLocalSessionFolder = () => {
     sessions,
     loadingSession,
     loadError,
-    openFiles,
     openDroppedItem,
     selectSession,
   };

@@ -1,6 +1,5 @@
-import { memo, useRef, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 import { LuFolderDown } from 'react-icons/lu';
-import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import SessionRow from './SessionRow';
 import type { SessionInfo } from '@/services/historyService/sessionFileReader/types';
@@ -9,26 +8,12 @@ interface LocalFilePickerProps {
   sessions: SessionInfo[];
   loadingSession: boolean;
   loadError: string | null;
-  onFiles: (files: FileList) => void;
   onSelect: (sessionId: string) => void;
 }
 
 const LocalFilePicker = memo(
-  ({
-    sessions,
-    loadingSession,
-    loadError,
-    onFiles,
-    onSelect,
-  }: LocalFilePickerProps) => {
-    const inputRef = useRef<HTMLInputElement>(null);
+  ({ sessions, loadingSession, loadError, onSelect }: LocalFilePickerProps) => {
     const [isDraggingOver, setIsDraggingOver] = useState(false);
-
-    useEffect(() => {
-      if (inputRef.current) {
-        inputRef.current.setAttribute('webkitdirectory', '');
-      }
-    }, []);
 
     return (
       <div className="border-b border-monitor-line">
@@ -51,23 +36,6 @@ const LocalFilePicker = memo(
             <p className="text-sm text-gray-400">
               {isDraggingOver ? 'Release to open' : 'Drop a history folder'}
             </p>
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(event) => {
-                if (event.target.files?.length) onFiles(event.target.files);
-              }}
-            />
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => inputRef.current?.click()}
-              className="text-gray-400"
-            >
-              or Browse folder…
-            </Button>
           </div>
         </div>
 

@@ -81,7 +81,6 @@ const SessionPicker = () => {
           sessions={local.sessions}
           loadingSession={local.loadingSession}
           loadError={local.loadError}
-          onFiles={local.openFiles}
           onSelect={local.selectSession}
         />
 
