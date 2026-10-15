@@ -17,12 +17,12 @@ const SessionTimeIndicator = ({
     <span className="text-xs capitalize tracking-wide text-gray-500">
       {label}
     </span>
-    <span className="flex items-baseline gap-1 font-mono tabular-nums">
+    <span className="flex flex-col items-start gap-0.5 font-mono tabular-nums">
       <span className="text-xl 2xl:text-2xl leading-none font-semibold text-white">
         {formatCompactTime(elapsedUs)}
       </span>
       <span className="text-xs 2xl:text-sm text-gray-400">
-        / {formatCompactTime(durationUs)}
+        / {formatCompactTime(durationUs, false, true)}
       </span>
     </span>
   </div>

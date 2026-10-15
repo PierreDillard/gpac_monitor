@@ -32,6 +32,23 @@ describe('parseSessionTimeInput', () => {
     expect(parseSessionTimeInput('72:00:01', SESSION_72H_US)).toBeNull();
   });
 
+  it('reads 1d 02:00:00 and 26:00:00 as the same position', () => {
+    expect(parseSessionTimeInput('1d 02:00:00', SESSION_72H_US)).toBe(
+      26 * HOUR_US,
+    );
+    expect(parseSessionTimeInput('26:00:00', SESSION_72H_US)).toBe(
+      26 * HOUR_US,
+    );
+  });
+
+  it('accepts a whole-day input as shown on the ruler', () => {
+    expect(parseSessionTimeInput('2d', SESSION_72H_US)).toBe(48 * HOUR_US);
+  });
+
+  it('rejects a day input past the session end', () => {
+    expect(parseSessionTimeInput('3d 00:00:01', SESSION_72H_US)).toBeNull();
+  });
+
   it('rejects malformed input', () => {
     expect(parseSessionTimeInput('12:75:00', SESSION_72H_US)).toBeNull();
     expect(parseSessionTimeInput('abc', SESSION_72H_US)).toBeNull();

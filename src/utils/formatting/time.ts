@@ -121,18 +121,31 @@ export const formatChartTimeFromUs = (microseconds: number): string => {
   return `${hh}:${mm}:${ss}`;
 };
 
-export const formatCompactTime = (us: number, withCs = false): string => {
+const DAY_US = 86_400_000_000;
+
+export const formatCompactTime = (
+  us: number,
+  withCs = false,
+  trimWholeDays = false,
+): string => {
   const totalSeconds = Math.floor(us / 1_000_000);
   const seconds = totalSeconds % 60;
   const totalMinutes = Math.floor(totalSeconds / 60);
   const minutes = totalMinutes % 60;
-  const hours = Math.floor(totalMinutes / 60);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const hours = totalHours % 24;
+  const days = Math.floor(totalHours / 24);
   const ss = String(seconds).padStart(2, '0');
   const mm = String(minutes).padStart(2, '0');
+  const hh = String(hours).padStart(2, '0');
   const cs = withCs
     ? `.${String(Math.floor((us % 1_000_000) / 10_000)).padStart(2, '0')}`
     : '';
-  if (hours > 0) return `${String(hours).padStart(2, '0')}:${mm}:${ss}${cs}`;
+  if (days > 0) {
+    if (trimWholeDays && us % DAY_US === 0) return `${days}d`;
+    return `${days}d ${hh}:${mm}:${ss}${cs}`;
+  }
+  if (hours > 0) return `${hh}:${mm}:${ss}${cs}`;
   return `${mm}:${ss}${cs}`;
 };
 

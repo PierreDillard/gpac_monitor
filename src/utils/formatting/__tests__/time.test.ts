@@ -28,6 +28,29 @@ describe('formatCompactTime', () => {
     expect(formatCompactTime(3_350_000, true)).toBe('00:03.35');
     expect(formatCompactTime(3_350_000)).toBe('00:03');
   });
+  it('keeps hh:mm:ss just under one day', () => {
+    expect(formatCompactTime(86_399_000_000)).toBe('23:59:59');
+  });
+  it('switches to days at 24h with full precision by default', () => {
+    expect(formatCompactTime(86_400_000_000)).toBe('1d 00:00:00');
+  });
+  it('formats 513h00m51s as 21d 09:00:51', () => {
+    expect(formatCompactTime((513 * 3600 + 51) * 1_000_000)).toBe(
+      '21d 09:00:51',
+    );
+  });
+  it('keeps centiseconds with days', () => {
+    expect(formatCompactTime(2 * 86_400_000_000 + 470_000, true)).toBe(
+      '2d 00:00:00.47',
+    );
+  });
+  it('trims a whole day to Nd only when asked', () => {
+    expect(formatCompactTime(2 * 86_400_000_000, false, true)).toBe('2d');
+    expect(formatCompactTime(2 * 86_400_000_000)).toBe('2d 00:00:00');
+    expect(
+      formatCompactTime(2 * 86_400_000_000 + 3_600_000_000, false, true),
+    ).toBe('2d 01:00:00');
+  });
 });
 
 describe('formatChartTimeFromUs (regression: timezone offset)', () => {

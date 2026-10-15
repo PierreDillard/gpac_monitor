@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { LuPause } from 'react-icons/lu';
 import SeekBar from './SeekBar';
+import { useContainerSize } from '@/components/common/charts/useContainerSize';
 import { LANE_GUTTER_WIDTH_PX } from '../historyLayout';
 import { formatCompactTime } from '@/utils/formatting/time';
 import { generateWindowTimeTicks } from '@/utils/history/generateTimeTicks';
@@ -46,13 +47,16 @@ const Timeline = ({
   const relativeTimeUs = currentTimeUs - sessionStartUs;
   const elapsedUs = Math.max(0, Math.min(relativeTimeUs, durationUs));
   const progressPercent = getCursorPercent(viewport, elapsedUs);
+  const rulerContainerRef = useRef<HTMLDivElement>(null);
+  const { width: rulerWidthPx } = useContainerSize(rulerContainerRef);
   const timeRuler = useMemo(
     () =>
       generateWindowTimeTicks(
         viewport.visibleStartUs,
         viewport.visibleDurationUs,
+        rulerWidthPx,
       ),
-    [viewport],
+    [viewport, rulerWidthPx],
   );
 
   const percentToSessionUs = useCallback(
@@ -95,7 +99,7 @@ const Timeline = ({
             )}
           </button>
         </div>
-        <div className="flex-1 min-w-0">
+        <div ref={rulerContainerRef} className="flex-1 min-w-0">
           <SeekBar
             progressPercent={progressPercent}
             onSeekPositionChange={handleSeekPositionChange}

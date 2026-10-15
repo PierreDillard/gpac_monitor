@@ -1,7 +1,10 @@
 import * as Slider from '@radix-ui/react-slider';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { TimeRuler } from '@/utils/history/generateTimeTicks';
+import {
+  estimateTickLabelWidthPx,
+  type TimeRuler,
+} from '@/utils/history/generateTimeTicks';
 import { CLICK_MAX_DISTANCE_PX } from '../historyLayout';
 
 interface SeekBarProps {
@@ -144,11 +147,13 @@ const SeekBar = ({
           </div>
           {timeRuler.major.length > 0 && (
             <div className="relative h-7">
-              {timeRuler.major.map((tick, index) => (
+              {timeRuler.major.map((tick) => (
                 <span
                   key={tick.positionPercent}
-                  className={`absolute text-[0.643rem] tabular-nums text-gray-300 pointer-events-none select-none ${index === 0 ? '' : '-translate-x-1/2'}`}
-                  style={{ left: `${tick.positionPercent}%` }}
+                  className="absolute -translate-x-1/2 whitespace-nowrap text-[0.643rem] tabular-nums text-gray-300 pointer-events-none select-none"
+                  style={{
+                    left: `clamp(${estimateTickLabelWidthPx(tick.label) / 2}px, ${tick.positionPercent}%, calc(100% - ${estimateTickLabelWidthPx(tick.label) / 2}px))`,
+                  }}
                 >
                   {tick.label}
                 </span>
