@@ -48,10 +48,8 @@ const LocalFilePicker = memo(
             onDrop={() => setIsDraggingOver(false)}
           >
             <LuFolderDown className="w-6 h-6 text-gray-400" />
-            <p className="text-sm text-white/85">
-              {isDraggingOver
-                ? 'Release to open'
-                : 'Drop a history folder here'}
+            <p className="text-sm text-gray-400">
+              {isDraggingOver ? 'Release to open' : 'Drop a history folder'}
             </p>
             <input
               ref={inputRef}
