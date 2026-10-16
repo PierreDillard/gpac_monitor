@@ -43,11 +43,10 @@ const firstIndexAfter = (
   return low;
 };
 
-/** Keeps events inside the visible window and positions them relative to it. */
-export function getVisibleEvents(
+export function sliceVisibleEvents(
   viewport: TimelineViewport,
   events: TimelineEvent[],
-): PositionedEvent[] {
+): TimelineEvent[] {
   if (viewport.visibleDurationUs <= 0) return [];
   const visibleEndUs = viewport.visibleStartUs + viewport.visibleDurationUs;
   const startIndex = firstIndexAfter(
@@ -58,15 +57,18 @@ export function getVisibleEvents(
     events,
     (sessionTimeUs) => sessionTimeUs <= visibleEndUs,
   );
-  const visible: PositionedEvent[] = [];
-  for (let index = startIndex; index < endIndex; index++) {
-    const event = events[index];
-    visible.push({
-      event,
-      positionPercent: toPercent(event.sessionTimeUs, viewport),
-    });
-  }
-  return visible;
+  return events.slice(startIndex, endIndex);
+}
+
+/** Keeps events inside the visible window and positions them relative to it. */
+export function getVisibleEvents(
+  viewport: TimelineViewport,
+  events: TimelineEvent[],
+): PositionedEvent[] {
+  return sliceVisibleEvents(viewport, events).map((event) => ({
+    event,
+    positionPercent: toPercent(event.sessionTimeUs, viewport),
+  }));
 }
 
 /** Playhead position (0-100) inside the visible window, clamped to the edges. */

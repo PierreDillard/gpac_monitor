@@ -1,12 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
+  sliceVisibleEvents,
   getVisibleEvents,
   getCursorPercent,
   clusterVisibleEvents,
   pixelsToDurationUs,
   type PositionedEvent,
 } from '../timelineViewportView';
-import type { TimelineViewport } from '../timelineViewport';
+import {
+  zoomViewportAroundTime,
+  type TimelineViewport,
+} from '../timelineViewport';
 import type { TimelineEvent } from '@/services/historyService/types';
 
 const viewport: TimelineViewport = {
@@ -21,6 +25,46 @@ const event = (id: string, sessionTimeUs: number): TimelineEvent => ({
   absoluteTimeUs: sessionTimeUs,
   type: 'pid-reconfig',
   title: 'PID reconfigured',
+});
+
+describe('sliceVisibleEvents', () => {
+  const sessionEvents = [
+    event('before', 30_000_000),
+    event('start', 40_000_000),
+    event('inside', 60_000_000),
+    event('end', 80_000_000),
+    event('after', 90_000_000),
+  ];
+
+  it('keeps only the events of a zoomed window, bounds included', () => {
+    const result = sliceVisibleEvents(viewport, sessionEvents);
+    expect(result.map((entry) => entry.id)).toEqual(['start', 'inside', 'end']);
+  });
+
+  it('keeps the whole session when the view is not zoomed', () => {
+    const fullViewport: TimelineViewport = {
+      sessionDurationUs: 100_000_000,
+      visibleStartUs: 0,
+      visibleDurationUs: 100_000_000,
+    };
+    expect(sliceVisibleEvents(fullViewport, sessionEvents)).toEqual(
+      sessionEvents,
+    );
+  });
+
+  it('brings back the surrounding events after zooming out', () => {
+    const zoomedOut = zoomViewportAroundTime(viewport, 60_000_000, 2);
+    expect(sliceVisibleEvents(zoomedOut, sessionEvents)).toEqual(sessionEvents);
+  });
+
+  it('returns no event for a window without events', () => {
+    const emptyViewport: TimelineViewport = {
+      ...viewport,
+      visibleStartUs: 81_000_000,
+      visibleDurationUs: 5_000_000,
+    };
+    expect(sliceVisibleEvents(emptyViewport, sessionEvents)).toEqual([]);
+  });
 });
 
 describe('getVisibleEvents', () => {

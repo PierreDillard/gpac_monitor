@@ -11,7 +11,10 @@ import { useTimelineViewport } from '../hooks/useTimelineViewport';
 import { useTimelineLanes } from '../hooks/useTimelineLanes';
 import { useReplayNotifications } from '../hooks/useReplayNotifications';
 import { MIN_VISIBLE_DURATION_US } from '@/utils/history/timelineViewport';
-import { getCursorPercent } from '@/utils/history/timelineViewportView';
+import {
+  getCursorPercent,
+  sliceVisibleEvents,
+} from '@/utils/history/timelineViewportView';
 import {
   getPlayStartUs,
   getPagedStartUs,
@@ -59,6 +62,11 @@ const HistoryControls = () => {
     [allEvents, activeFilter],
   );
 
+  const journalEvents = useMemo(
+    () => sliceVisibleEvents(viewport, filteredEvents),
+    [viewport, filteredEvents],
+  );
+
   const playheadSessionUs = currentTimeUs - sessionStartUs;
   const lanes = useTimelineLanes(filteredEvents, viewport);
   const elapsedUs = Math.max(0, Math.min(playheadSessionUs, durationUs));
@@ -92,7 +100,7 @@ const HistoryControls = () => {
       onPanelResize={setPanelWidth}
       activeFilter={activeFilter}
       onFilterChange={setActiveFilter}
-      journalEvents={filteredEvents}
+      journalEvents={journalEvents}
       sessionStartUs={sessionStartUs}
       currentTimeUs={currentTimeUs}
       durationUs={durationUs}
