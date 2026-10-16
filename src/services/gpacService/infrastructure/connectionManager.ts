@@ -9,6 +9,7 @@ export class ConnectionManager {
   private notificationHandlers: GpacNotificationHandlers = {};
   private address: string | null = null;
   private endOfSession: boolean = false;
+  private wasConnected: boolean = false;
 
   constructor(private ws: GpacTransport) {}
 
@@ -51,8 +52,6 @@ export class ConnectionManager {
     } catch (error) {
       this.isConnecting = false;
       store.dispatch(setLoading(false));
-      this.notificationHandlers.onError?.(error as Error);
-      this.notificationHandlers.onConnectionStatus?.(false);
       throw error;
     }
   }
@@ -73,7 +72,7 @@ export class ConnectionManager {
     this.cleanup();
 
     // Only show error if it's NOT a normal end of session
-    if (!this.endOfSession) {
+    if (this.wasConnected && !this.endOfSession) {
       store.dispatch(setError('Connection to GPAC server lost'));
     } else {
       store.dispatch(setError(null));
@@ -81,10 +80,12 @@ export class ConnectionManager {
 
     // Reset flag for next connection
     this.endOfSession = false;
+    this.wasConnected = false;
   }
 
   private onConnectionSuccess(): void {
     this.isConnecting = false;
+    this.wasConnected = true;
     store.dispatch(setError(null));
   }
 
