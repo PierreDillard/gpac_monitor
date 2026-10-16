@@ -37,7 +37,6 @@ const mp4mxFilter: HistoryFilter = {
 };
 
 const makeSnapshot = (): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -45,7 +44,6 @@ const makeSnapshot = (): HistorySnapshot => ({
 });
 
 const makePlayedStatsEvent = (): SessionStatsEvent => ({
-  version: 1,
   ts_us: 31_777_251,
   message: 'session_stats',
   all_packets_done: true,

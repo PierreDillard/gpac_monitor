@@ -5,7 +5,7 @@
 /**
  * Default chart history duration
  */
-export const DEFAULT_CPU_HISTORY = '1min' as const;
+export const DEFAULT_CPU_HISTORY = '20s' as const;
 
 /**
  * LocalStorage key for CPU history duration preference

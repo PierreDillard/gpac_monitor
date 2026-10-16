@@ -6,6 +6,7 @@ import type { TimelineViewport } from '@/utils/history/timelineViewport';
 import {
   clusterVisibleEvents,
   getVisibleEvents,
+  type PositionedEvent,
 } from '@/utils/history/timelineViewportView';
 import type {
   TimelineLaneId,
@@ -35,15 +36,17 @@ export function buildLanes(
   viewport: TimelineViewport,
   events: TimelineEvent[],
 ): TimelineLaneView[] {
-  const visibleEvents = getVisibleEvents(viewport, events);
-  return LANE_ORDER.map((laneId) => {
-    const laneVisibleEvents = visibleEvents.filter(
-      (positioned) => EVENT_TYPE_TO_LANE[positioned.event.type] === laneId,
-    );
-    return {
-      id: laneId,
-      label: LANE_LABELS[laneId],
-      items: clusterVisibleEvents(laneVisibleEvents, CLUSTER_MIN_GAP_PERCENT),
-    };
-  });
+  const eventsByLane: Record<TimelineLaneId, PositionedEvent[]> = {
+    errors: [],
+    graph: [],
+    config: [],
+  };
+  for (const positioned of getVisibleEvents(viewport, events)) {
+    eventsByLane[EVENT_TYPE_TO_LANE[positioned.event.type]].push(positioned);
+  }
+  return LANE_ORDER.map((laneId) => ({
+    id: laneId,
+    label: LANE_LABELS[laneId],
+    items: clusterVisibleEvents(eventsByLane[laneId], CLUSTER_MIN_GAP_PERCENT),
+  }));
 }

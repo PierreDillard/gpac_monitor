@@ -4,7 +4,12 @@ import type {
   LogEvent,
   JournalIndex,
 } from '../types';
-import type { HistorySource, HistoryManifest } from './types';
+import type {
+  HistorySource,
+  HistoryManifest,
+  HistorySessionIndex,
+  ManifestEventEntry,
+} from './types';
 import type { LocalFileSessionFileReader } from '../sessionFileReader/LocalFileSessionFileReader';
 
 export class FileHistorySource implements HistorySource {
@@ -23,20 +28,41 @@ export class FileHistorySource implements HistorySource {
     return this.loadManifest();
   }
 
-  async readChunk(index: number): Promise<HistoryEvent[]> {
-    return this.reader.readChunk(this.sessionId, index);
+  async readChunk(index: number, segmentDir?: string): Promise<HistoryEvent[]> {
+    return this.reader.readChunk(this.sessionId, index, segmentDir);
   }
 
-  async readLogChunk(index: number): Promise<LogEvent[]> {
-    return this.reader.readLogChunk(this.sessionId, index);
+  async readLogChunk(index: number, segmentDir?: string): Promise<LogEvent[]> {
+    return this.reader.readLogChunk(this.sessionId, index, segmentDir);
   }
 
-  async readCheckpoint(chunkIndex: number): Promise<unknown> {
-    return this.reader.readCheckpoint(this.sessionId, chunkIndex);
+  async readCheckpoint(
+    chunkIndex: number,
+    segmentDir?: string,
+  ): Promise<unknown> {
+    return this.reader.readCheckpoint(this.sessionId, chunkIndex, segmentDir);
   }
 
   async loadJournalIndex(): Promise<JournalIndex | null> {
     return this.reader.readJournalIndex(this.sessionId);
+  }
+
+  async getSessionIndex(): Promise<HistorySessionIndex | null> {
+    return this.reader.readSessionIndex(this.sessionId);
+  }
+
+  async getSegmentManifest(
+    segmentDir: string,
+  ): Promise<HistoryManifest | null> {
+    return this.reader.readManifest(this.sessionId, segmentDir);
+  }
+
+  async loadSegmentSnapshot(segmentDir: string): Promise<HistorySnapshot> {
+    return this.reader.readSnapshot(this.sessionId, segmentDir);
+  }
+
+  async loadGlobalEventsIndex(): Promise<ManifestEventEntry[] | null> {
+    return this.reader.readEventsIndex(this.sessionId);
   }
 
   private async loadManifest(): Promise<HistoryManifest | null> {

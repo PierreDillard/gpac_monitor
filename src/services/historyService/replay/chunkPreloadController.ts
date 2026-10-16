@@ -8,7 +8,7 @@ export type AppendLogsCallback = (
   isStale: () => boolean,
 ) => Promise<void>;
 
-type PlayerInterface = {
+export type PlayerInterface = {
   append: (events: HistoryEvent[]) => void;
   setAwaitingMoreEvents: (value: boolean) => void;
 };
@@ -24,6 +24,7 @@ export class ChunkPreloadController {
     private readonly manifest: HistoryManifest,
     private readonly player: PlayerInterface,
     private readonly appendLogs: AppendLogsCallback,
+    private readonly hasNextSegment: boolean = false,
   ) {}
 
   /** Increment version + reset flags. Call at start of seek(). */
@@ -43,6 +44,11 @@ export class ChunkPreloadController {
     return this.version;
   }
 
+  /** True once the last chunk of this segment has been appended — not mid-preload. */
+  isAtSegmentEnd(): boolean {
+    return this.lastAppendedChunkIndex + 1 >= this.manifest.chunkCount;
+  }
+
   updatePlayingChunkIndex(currentTimeUs: number): void {
     this.playingChunkIndex = findEventChunkIndex(this.manifest, currentTimeUs);
   }
@@ -51,7 +57,7 @@ export class ChunkPreloadController {
     if (this.isPreloadingNextChunk) return;
     const nextIndex = this.lastAppendedChunkIndex + 1;
     if (nextIndex >= this.manifest.chunkCount) {
-      this.player.setAwaitingMoreEvents(false);
+      this.player.setAwaitingMoreEvents(this.hasNextSegment);
       return;
     }
     const chunksAhead = this.lastAppendedChunkIndex - this.playingChunkIndex;
@@ -67,26 +73,13 @@ export class ChunkPreloadController {
 
   private async preloadNextChunk(nextIndex: number): Promise<void> {
     const version = this.version;
-    console.debug('[ChunkPreloadController] preload start', {
-      nextIndex,
-      version,
-      lastAppendedChunkIndex: this.lastAppendedChunkIndex,
-    });
     try {
       const nextChunk = await this.loader.loadEventChunk(nextIndex);
-      console.debug('[ChunkPreloadController] event chunk loaded', {
-        nextIndex,
-        stale: version !== this.version,
-        eventsCount: nextChunk.events.length,
-      });
       if (version !== this.version) return;
       this.player.append(nextChunk.events);
-      console.debug('[ChunkPreloadController] events appended', {
-        nextIndex,
-        eventsCount: nextChunk.events.length,
-      });
       this.lastAppendedChunkIndex = nextIndex;
-      const hasNextChunk = nextIndex + 1 < this.manifest.chunkCount;
+      const hasNextChunk =
+        nextIndex + 1 < this.manifest.chunkCount || this.hasNextSegment;
       this.player.setAwaitingMoreEvents(hasNextChunk);
       void this.appendLogs(nextChunk, () => version !== this.version);
       this.isPreloadingNextChunk = false;

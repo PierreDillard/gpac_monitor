@@ -1,11 +1,15 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { LuPause } from 'react-icons/lu';
 import SeekBar from './SeekBar';
+import { useContainerSize } from '@/components/common/charts/useContainerSize';
 import { LANE_GUTTER_WIDTH_PX } from '../historyLayout';
 import { formatCompactTime } from '@/utils/formatting/time';
 import { generateWindowTimeTicks } from '@/utils/history/generateTimeTicks';
-import { getCursorPercent } from '@/utils/history/timelineViewportView';
+import {
+  getCursorPercent,
+  pixelsToDurationUs,
+} from '@/utils/history/timelineViewportView';
 import type { TimelineViewport } from '@/utils/history/timelineViewport';
 import { FaCirclePlay } from 'react-icons/fa6';
 
@@ -19,6 +23,9 @@ interface TimelineProps {
   onPlay: () => void;
   onPause: () => void;
   onSeek: (targetTimestampUs: number) => void;
+  onPan: (deltaUs: number) => void;
+  onRulerClick?: () => void;
+  railOverlay?: ReactNode;
   belowRailContent?: ReactNode;
 }
 
@@ -32,18 +39,24 @@ const Timeline = ({
   onPlay,
   onPause,
   onSeek,
+  onPan,
+  onRulerClick,
+  railOverlay,
   belowRailContent,
 }: TimelineProps) => {
   const relativeTimeUs = currentTimeUs - sessionStartUs;
   const elapsedUs = Math.max(0, Math.min(relativeTimeUs, durationUs));
   const progressPercent = getCursorPercent(viewport, elapsedUs);
+  const rulerContainerRef = useRef<HTMLDivElement>(null);
+  const { width: rulerWidthPx } = useContainerSize(rulerContainerRef);
   const timeRuler = useMemo(
     () =>
       generateWindowTimeTicks(
         viewport.visibleStartUs,
         viewport.visibleDurationUs,
+        rulerWidthPx,
       ),
-    [viewport],
+    [viewport, rulerWidthPx],
   );
 
   const percentToSessionUs = useCallback(
@@ -62,7 +75,9 @@ const Timeline = ({
 
   const formatTooltip = useCallback(
     (positionPercent: number) =>
-      formatCompactTime(percentToSessionUs(positionPercent), true),
+      formatCompactTime(percentToSessionUs(positionPercent), {
+        centiseconds: true,
+      }),
     [percentToSessionUs],
   );
 
@@ -86,13 +101,24 @@ const Timeline = ({
             )}
           </button>
         </div>
-        <div className="flex-1 min-w-0">
+        <div ref={rulerContainerRef} className="flex-1 min-w-0">
           <SeekBar
             progressPercent={progressPercent}
             onSeekPositionChange={handleSeekPositionChange}
             formatTooltip={formatTooltip}
             disabled={!canPlay}
             timeRuler={timeRuler}
+            onRulerClick={onRulerClick}
+            railOverlay={railOverlay}
+            onRulerDrag={(deltaPixels, rulerWidthPx) =>
+              onPan(
+                -pixelsToDurationUs(
+                  deltaPixels,
+                  rulerWidthPx,
+                  viewport.visibleDurationUs,
+                ),
+              )
+            }
           />
         </div>
       </div>

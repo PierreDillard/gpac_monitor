@@ -31,6 +31,8 @@ export class ChunkLoader {
   constructor(
     private readonly reader: IChunkReader,
     private readonly manifest: HistoryManifest,
+    private readonly segmentDir?: string,
+    private readonly onReadError?: (position: number) => void,
   ) {}
 
   async loadEventChunk(position: number): Promise<EventChunk> {
@@ -44,10 +46,11 @@ export class ChunkLoader {
     const { fromUs, toUs } = getEventChunkRange(this.manifest, position);
     let events: HistoryEvent[];
     try {
-      events = await this.reader.readChunk(position);
+      events = await this.reader.readChunk(position, this.segmentDir);
     } catch (error) {
       console.warn('[ChunkLoader] loadEventChunk failed:', error);
-      events = [];
+      this.onReadError?.(position);
+      return { index: position, fromUs, toUs, events: [] };
     }
     const chunk: EventChunk = { index: position, fromUs, toUs, events };
 
@@ -65,7 +68,7 @@ export class ChunkLoader {
 
   async loadCheckpoint(cpFile: string): Promise<HistoryCheckpoint | null> {
     const chunkIndex = chunkIndexFromPath(cpFile);
-    const raw = await this.reader.readCheckpoint(chunkIndex);
+    const raw = await this.reader.readCheckpoint(chunkIndex, this.segmentDir);
     if (!raw || typeof raw !== 'object') return null;
     return raw as HistoryCheckpoint;
   }
@@ -92,10 +95,10 @@ export class ChunkLoader {
     const logIndex = chunkIndexFromPath(entry.file);
     let logs: LogEvent[];
     try {
-      logs = await this.reader.readLogChunk(logIndex);
+      logs = await this.reader.readLogChunk(logIndex, this.segmentDir);
     } catch (error) {
       console.warn('[ChunkLoader] loadLogChunk failed:', error);
-      logs = [];
+      return { fromUs: entry.fromUs, toUs: entry.toUs, logs: [] };
     }
     const chunk: LogChunk = { fromUs: entry.fromUs, toUs: entry.toUs, logs };
 

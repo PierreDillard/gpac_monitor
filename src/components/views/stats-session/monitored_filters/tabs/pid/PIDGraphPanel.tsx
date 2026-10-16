@@ -12,7 +12,7 @@ import {
   MODE_FORMATTERS,
   PID_METRICS_BY_KEY,
 } from '../../charts/config/pidHistoryChartConfig';
-import { formatCompactTime } from '@/utils/formatting';
+import { formatCompactTime, formatAxisTime } from '@/utils/formatting';
 import LineHistoryChart from '../../charts/LineHistoryChart';
 
 interface PIDGraphPanelProps {
@@ -58,6 +58,7 @@ const PIDGraphPanel = memo(
           series={series}
           data={data}
           formatX={formatCompactTime}
+          formatAxisX={formatAxisTime}
           leftAxisFormat={MODE_FORMATTERS[mode]}
           showCurrentTime
           showEndLabels={showEndLabels}

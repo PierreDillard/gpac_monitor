@@ -25,11 +25,12 @@ const EventJournalRow = memo(
               onClick={() => onSeek(sessionStartUs + event.sessionTimeUs)}
               className="text-monitor-meta font-mono tabular-nums text-xs shrink-0 hover:brightness-125"
             >
-              {formatCompactTime(event.sessionTimeUs, true)}
+              {formatCompactTime(event.sessionTimeUs, { centiseconds: true })}
             </button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            Absolute: {formatCompactTime(event.absoluteTimeUs, true)}
+            Absolute:{' '}
+            {formatCompactTime(event.absoluteTimeUs, { centiseconds: true })}
           </TooltipContent>
         </Tooltip>
         <span className={`${color} w-3 h-0.5 rounded-sm shrink-0`} />

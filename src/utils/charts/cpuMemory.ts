@@ -3,14 +3,13 @@ import { formatChartSeconds } from '@/utils/formatting/time';
 
 export interface CpuMemoryDataPoint {
   timestamp: number;
-  time?: string;
+  sessionTimeUs?: number;
   cpu_percent: number;
   memory_mb: number;
 }
 
 export interface PreparedCpuMemoryData {
   alignedData: uPlot.AlignedData;
-  timeLabels: string[];
   memoryData: number[];
   cpuData: number[];
 }
@@ -23,12 +22,7 @@ export interface PreparedCpuMemoryData {
 export function prepareCpuMemoryData(
   dataPoints: CpuMemoryDataPoint[],
 ): PreparedCpuMemoryData {
-  const firstTimestamp = dataPoints.length > 0 ? dataPoints[0].timestamp : 0;
-
   const indices = dataPoints.map((_, i) => i);
-  const timeLabels = dataPoints.map(
-    (p) => p.time ?? formatChartSeconds((p.timestamp - firstTimestamp) / 1000),
-  );
   const memoryData = dataPoints.map((p) => p.memory_mb);
   const cpuData = dataPoints.map((p) => p.cpu_percent);
 
@@ -36,10 +30,21 @@ export function prepareCpuMemoryData(
 
   return {
     alignedData,
-    timeLabels,
     memoryData,
     cpuData,
   };
+}
+
+export function formatCpuMemoryTimeLabel(
+  dataPoints: CpuMemoryDataPoint[],
+  index: number,
+  formatSessionTime: (us: number) => string,
+): string {
+  const point = dataPoints[index];
+  if (!point) return '';
+  if (point.sessionTimeUs != null)
+    return formatSessionTime(point.sessionTimeUs);
+  return formatChartSeconds((point.timestamp - dataPoints[0].timestamp) / 1000);
 }
 
 /**

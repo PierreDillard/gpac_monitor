@@ -11,7 +11,6 @@ import type { GpacLogEntry } from '@/types/domain/gpac/log-types';
 // --- History Events ---
 
 interface BaseEvent {
-  version: number;
   ts_us: number;
 }
 
@@ -127,7 +126,6 @@ export interface HistoryFilter {
 }
 
 export interface HistorySnapshot {
-  version: number;
   ts_us: number;
   command_line: string | null;
   graph_v: number;
@@ -139,7 +137,7 @@ export interface HistorySnapshot {
 
 export type HistoryCheckpoint = Pick<
   HistorySnapshot,
-  'version' | 'ts_us' | 'graph_v' | 'filters'
+  'ts_us' | 'graph_v' | 'filters'
 > & {
   pid_state?: Record<string, Record<string, PidPropsMap>>;
   arg_state?: Record<string, GpacArgument[]>;

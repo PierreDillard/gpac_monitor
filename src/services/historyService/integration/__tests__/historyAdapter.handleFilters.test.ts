@@ -33,7 +33,6 @@ const makeFilter = (
 });
 
 const makeSnapshot = (filters: HistoryFilter[]): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -44,7 +43,6 @@ const makeFiltersEvent = (
   filters: HistoryFilter[],
   graphV = 2,
 ): FiltersEvent => ({
-  version: 1,
   ts_us: 1000,
   message: 'filters',
   graph_v: graphV,

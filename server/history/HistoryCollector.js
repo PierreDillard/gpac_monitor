@@ -1,17 +1,25 @@
 import { Sys as sys } from 'gpaccore';
-import { HistoryWriter } from './HistoryWriter.js';
+import { HistorySessionWriter } from './HistorySessionWriter.js';
+import { SnapshotBuilder } from './SnapshotBuilder.js';
 import { PidDataCollector } from '../JSClient/Filters/PID/PidDataCollector.js';
 import { logHub } from '../JSClient/Sys/Utils/LogHub.js';
 import { RATE_LIMIT_US, MAX_LOG_MESSAGE_LENGTH } from '../config/history.config.js';
 
-const EVENT_VERSION = 1;
 const LOG_ID = '_hist_';
 const LOG_LEVEL_ERROR = 1;
 const LOG_LEVEL_WARNING = 2;
 
+/**
+ * HistoryCollector - taps the live session (graph/stats/logs/args) and forwards it to a HistorySessionWriter; no-op when historyDir is falsy.
+ * @param {string} historyDir
+ */
 function HistoryCollector(historyDir) {
+    this.snapshotBuilder = new SnapshotBuilder();
+    this._graphVersion = null;
     this.enabled = !!historyDir;
-    this.writer = new HistoryWriter(historyDir);
+    this.writer = new HistorySessionWriter(historyDir, undefined, {
+        buildSegmentSnapshot: (rolloverTsUs) => this._buildRolloverSnapshot(rolloverTsUs),
+    });
     this.pidCollector = new PidDataCollector();
     this.snapshotWritten = false;
     this.lastRecordUs = 0;
@@ -33,7 +41,6 @@ function HistoryCollector(historyDir) {
     }
 
     const checkpoint = {
-        version: this._latestStructural.version,
         ts_us: tsUs,
         graph_v: this._latestStructural.graph_v,
         filters: this._latestStructural.filters,
@@ -66,7 +73,17 @@ this._onChunkRotated = function() {
         this.snapshotWritten = true;
     };
 
-this.recordGraph = function(filters, filterInstances, graphVersion) {    // Builds the full graph payload used by snapshot and "filters" events.
+    this._buildRolloverSnapshot = function(rolloverTsUs) {
+        let commandLine = null;
+        try { commandLine = sys.args ? sys.args.join(' ') : null; } catch (_e) {}
+        const snapshot = this.snapshotBuilder.build(this._graphVersion, commandLine);
+        snapshot.ts_us = rolloverTsUs;
+        return snapshot;
+    };
+
+this.recordGraph = function(filters, filterInstances, graphVersion) {
+    this._graphVersion = graphVersion;
+    // Builds the full graph payload used by snapshot and "filters" events.
     const pidCollector = new PidDataCollector();
 
     const eventFilters = filters.map((filter, index) => {
@@ -105,7 +122,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {    // Buil
     // Writes the initial full snapshot once.
     if (!this.snapshotWritten) {
         this.writeSnapshot({
-            version: EVENT_VERSION,
             ts_us: filtersTsUs,
             command_line: null,
             graph_v: graphVersion,
@@ -115,7 +131,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {    // Buil
 
     // Writes the full "filters" event for history replay.
     const rotated = this.writer.writeEvent(JSON.stringify({
-        version: EVENT_VERSION,
         message: 'filters',
         ts_us: filtersTsUs,
         graph_v: graphVersion,
@@ -125,7 +140,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {    // Buil
 
     // Stores the structural baseline used by checkpoints.
     this._latestStructural = {
-        version: EVENT_VERSION,
         graph_v: graphVersion,
         filters: checkpointFilters,
     };
@@ -169,7 +183,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {    // Buil
         session.lock_filters(false);
 
         const rotated = this.writer.writeEvent(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'session_stats',
             ts_us,
             all_packets_done: payload.all_packets_done,
@@ -183,7 +196,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {    // Buil
         if (cpuTsUs - this.lastCpuRecordUs < RATE_LIMIT_US) return;
         this.lastCpuRecordUs = cpuTsUs;
         const rotated = this.writer.writeEvent(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'cpu_stats',
             ts_us: cpuTsUs,
             ...payload,
@@ -212,7 +224,6 @@ this.recordGraph = function(filters, filterInstances, graphVersion) {    // Buil
         this._chunkNeedsCheckpoint = true;
     }
        const rotated = this.writer.writeEvent(JSON.stringify({
-        version: EVENT_VERSION,
         message: 'filter_pid_reconfigured',
         ts_us: tsUs,
         indexes,
@@ -238,7 +249,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
     }
 
     const rotated = this.writer.writeEvent(JSON.stringify({
-        version: EVENT_VERSION,
         message: 'filter_arg_updated',
         ts_us: tsUs,
         indexes,
@@ -250,7 +260,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
 
     this.recordFilterArgsUpdate = function(filterIdx, argName, newValue) {        const argsTsUs = sys.clock_us();
         const rotated = this.writer.writeEvent(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'filter_args_update',
             ts_us: argsTsUs,
             payload: { filter_idx: filterIdx, arg_name: argName, value: newValue },
@@ -261,7 +270,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
 
     this.recordLogConfigChanged = function(logLevel) {        const tsUs = sys.clock_us();
         this.writer.writeLog(JSON.stringify({
-            version: EVENT_VERSION,
             message: 'log_config_changed',
             ts_us: tsUs,
             logLevel,
@@ -288,7 +296,6 @@ this.recordArgUpdated = function(indexes, argsByFilter) {    const tsUs = sys.cl
         if (this.pendingLogs.length) {
             const tsUs = sys.clock_us();
             this.writer.writeLog(JSON.stringify({
-                version: EVENT_VERSION,
                 message: 'log_batch',
                 ts_us: tsUs,
                 logs: this.pendingLogs,

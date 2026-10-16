@@ -18,16 +18,32 @@ import {
 } from './replay/badgeExpirationController';
 import { ChunkPreloadController } from './replay/chunkPreloadController';
 import type { AppendLogsCallback } from './replay/chunkPreloadController';
+import { resolveSegmentSwitch } from './replay/resolveSegmentSwitch';
 import { flattenLogEvents } from './replay/flattenLogEvents';
-import type { HistoryManifest, HistorySource } from './source/types';
+import type {
+  HistoryManifest,
+  HistorySource,
+  HistorySessionIndex,
+} from './source/types';
 import { ChunkLoader } from './chunkLoader';
 import type { EventChunk } from './chunkLoader';
 import { findEventChunkIndex, findNearestCheckpoint } from './manifestParser';
+import {
+  findNextSegmentDir,
+  findPreviousSegmentDir,
+  getSegmentDir,
+  getSegmentToUs,
+  hasNextSegment,
+} from './sessionIndexParser';
 
 /**
  * HistoryController — orchestrates snapshot loading + event replay.
  * Owns the EventPlayer and HistoryAdapter instances.
  */
+export type ReplayNotificationHandlers = {
+  onChunkUnreadable?: (position: number) => void;
+};
+
 export class HistoryController {
   private player = new EventPlayer();
   private adapter: HistoryAdapter | null = null;
@@ -38,12 +54,105 @@ export class HistoryController {
   private nextLogIndex = 0;
   private loader: ChunkLoader | null = null;
   private manifest: HistoryManifest | null = null;
+  private sessionIndex: HistorySessionIndex | null = null;
+  private source: HistorySource | null = null;
+  private segmentDir: string | undefined;
+  private openSessionEndUs: number | undefined;
   private loadedChunkIndex: number | null = null;
   private preloader: ChunkPreloadController | null = null;
   private timelineEvents: TimelineEvent[] = [];
+  private userListener: PlayerListener | null = null;
+  private notificationHandlers: ReplayNotificationHandlers = {};
+
+  constructor() {
+    this.player.setListener(this.handlePlayerStateChange);
+  }
 
   setListener(listener: PlayerListener) {
-    this.player.setListener(listener);
+    this.userListener = listener;
+  }
+
+  setNotificationHandlers(handlers: ReplayNotificationHandlers) {
+    this.notificationHandlers = handlers;
+  }
+
+  private notifyChunkUnreadable = (position: number): void => {
+    this.notificationHandlers.onChunkUnreadable?.(position);
+  };
+
+  private handlePlayerStateChange = (
+    state: PlayerState,
+    timeUs: number,
+  ): void => {
+    this.userListener?.(state, timeUs);
+    if (state === 'waiting') {
+      void this.tryRolloverToNextSegment();
+    }
+  };
+
+  /**
+   * Forward playback hit the end of the current segment's last loaded chunk
+   * (task 15 E2). Swap loader/preloader to segment N+1 and append its first
+   * chunk — adapter/baseState untouched, only a true seek re-hydrates.
+   */
+  private async tryRolloverToNextSegment(): Promise<void> {
+    const currentPreloader = this.preloader;
+    if (!currentPreloader || !currentPreloader.isAtSegmentEnd()) return;
+    if (!this.sessionIndex || !this.segmentDir || !this.source) return;
+
+    const nextSegmentDir = findNextSegmentDir(
+      this.sessionIndex,
+      this.segmentDir,
+    );
+    if (!nextSegmentDir) return;
+
+    const versionBeforeSwitch = currentPreloader.getVersion();
+    let manifest: HistoryManifest;
+    let snapshot: HistorySnapshot;
+    try {
+      const nextManifest = await this.source.getSegmentManifest(nextSegmentDir);
+      if (!nextManifest) throw new Error(`no manifest for ${nextSegmentDir}`);
+      manifest = nextManifest;
+      snapshot = await this.source.loadSegmentSnapshot(nextSegmentDir);
+    } catch (error) {
+      console.warn('[HistoryController] segment rollover failed:', error);
+      this.notifyChunkUnreadable(0);
+      return;
+    }
+    if (versionBeforeSwitch !== currentPreloader.getVersion()) return;
+
+    const loader = new ChunkLoader(
+      this.source,
+      manifest,
+      nextSegmentDir,
+      this.notifyChunkUnreadable,
+    );
+    const firstChunk = await loader.loadEventChunk(0);
+    if (versionBeforeSwitch !== currentPreloader.getVersion()) return;
+
+    const newPreloader = new ChunkPreloadController(
+      loader,
+      manifest,
+      this.player,
+      this.appendLogs,
+      hasNextSegment(this.sessionIndex, nextSegmentDir),
+    );
+    const newPreloaderVersion = newPreloader.getVersion();
+
+    this.manifest = manifest;
+    this.loader = loader;
+    this.preloader = newPreloader;
+    this.snapshot = snapshot;
+    this.segmentDir = nextSegmentDir;
+    this.loadedChunkIndex = 0;
+
+    this.player.append(firstChunk.events);
+    void this.appendLogs(
+      firstChunk,
+      () => newPreloader.getVersion() !== newPreloaderVersion,
+    );
+    newPreloader.reset(0);
+    newPreloader.ensureOneChunkAhead();
   }
 
   private handleReplayEvent = (event: HistoryEvent): void => {
@@ -139,44 +248,122 @@ export class HistoryController {
   }
 
   async load(source: HistorySource, dispatch: AppDispatch) {
-    const manifest = await source.getManifest();
+    const sessionIndex = await source.getSessionIndex();
+    this.sessionIndex = sessionIndex;
+    this.source = source;
+    const segmentDir = sessionIndex?.segments[0]
+      ? getSegmentDir(sessionIndex.segments[0])
+      : undefined;
+    this.segmentDir = segmentDir;
+    const manifest = segmentDir
+      ? await source.getSegmentManifest(segmentDir)
+      : await source.getManifest();
     if (!manifest)
       throw new Error('[HistoryController] No manifest for session');
 
     this.manifest = manifest;
-    const journalIndex = manifest.journalIndex
-      ? await source.loadJournalIndex()
-      : null;
+    // Torn session: session.json has no end, the last segment's manifest has the real one.
+    const lastSegment =
+      sessionIndex?.segments[sessionIndex.segments.length - 1];
+    this.openSessionEndUs =
+      !lastSegment || sessionIndex?.endUs !== undefined
+        ? undefined
+        : getSegmentDir(lastSegment) === segmentDir
+          ? manifest.endUs
+          : (await source.getSegmentManifest(getSegmentDir(lastSegment)))
+              ?.endUs;
+    const sessionStartUs = sessionIndex?.startUs ?? manifest.startUs;
+    const eventsIndex = segmentDir
+      ? ((await source.loadGlobalEventsIndex()) ?? [])
+      : (manifest.eventsIndex ?? []);
+    const journalIndex =
+      segmentDir || manifest.journalIndex
+        ? await source.loadJournalIndex()
+        : null;
+    // Root indexes are append-only: skip markers of segments purged by retention.
+    const retainedFromUs = sessionIndex?.segments[0]?.fromUs ?? null;
     this.timelineEvents = [
-      ...deriveTimelineEvents(manifest),
-      ...deriveErrorWarningEvents(journalIndex, manifest.startUs),
-    ].sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
-    this.loader = new ChunkLoader(source, manifest);
+      ...deriveTimelineEvents(eventsIndex, sessionStartUs),
+      ...deriveErrorWarningEvents(journalIndex, sessionStartUs),
+    ]
+      .filter(
+        (event) =>
+          retainedFromUs === null || event.absoluteTimeUs >= retainedFromUs,
+      )
+      .sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
+    this.loader = new ChunkLoader(
+      source,
+      manifest,
+      segmentDir,
+      this.notifyChunkUnreadable,
+    );
     this.preloader = new ChunkPreloadController(
       this.loader,
       manifest,
       this.player,
       this.appendLogs,
+      sessionIndex && segmentDir
+        ? hasNextSegment(sessionIndex, segmentDir)
+        : false,
     );
 
-    const snapshot = await source.loadSnapshot();
+    const snapshot = segmentDir
+      ? await source.loadSegmentSnapshot(segmentDir)
+      : await source.loadSnapshot();
 
     this.snapshot = snapshot;
-    this.sessionStartUs = manifest.startUs;
+    this.sessionStartUs = sessionStartUs;
     this.sessionLogs = [];
     this.nextLogIndex = 0;
     this.loadedChunkIndex = null;
     this.adapter = new HistoryAdapter(dispatch);
-    this.adapter.hydrate(snapshot, manifest.startUs);
+    this.adapter.hydrate(snapshot, sessionStartUs);
     this.badgeExpiration.reset();
     this.player.load([], this.handleReplayEvent, this.handlePlaybackTick);
   }
 
   async seek(tsUs: number): Promise<void> {
     this.preloader?.invalidate();
-    if (!this.manifest || !this.loader || !this.adapter || !this.preloader)
+    if (
+      !this.manifest ||
+      !this.loader ||
+      !this.adapter ||
+      !this.preloader ||
+      !this.source
+    )
       return;
-    const { manifest, loader, adapter, preloader } = this;
+    const { adapter, source } = this;
+    let manifest = this.manifest;
+    let loader = this.loader;
+    let preloader = this.preloader;
+    let segmentDir = this.segmentDir;
+
+    const switchResult = await resolveSegmentSwitch({
+      sessionIndex: this.sessionIndex,
+      source,
+      tsUs,
+      segmentDir,
+      preloader,
+      player: this.player,
+      appendLogs: this.appendLogs,
+      onReadError: this.notifyChunkUnreadable,
+    });
+    if (switchResult.stale) return;
+    if (!switchResult.changed && switchResult.failed) {
+      console.warn('[HistoryController] seek: segment switch failed, aborting');
+      return;
+    }
+    if (switchResult.changed) {
+      manifest = switchResult.manifest;
+      loader = switchResult.loader;
+      preloader = switchResult.preloader;
+      segmentDir = switchResult.segmentDir;
+      this.manifest = manifest;
+      this.loader = loader;
+      this.preloader = preloader;
+      this.snapshot = switchResult.snapshot;
+      this.segmentDir = segmentDir;
+    }
     const version = preloader.getVersion();
 
     const chunkIndex = findEventChunkIndex(manifest, tsUs);
@@ -205,12 +392,25 @@ export class HistoryController {
     if (chunkIndex > 0) {
       const prevChunk = await loader.loadEventChunk(chunkIndex - 1);
       if (version !== preloader.getVersion()) return;
-      for (const event of prevChunk.events) {
-        if (
-          event.message === 'session_stats' ||
-          event.message === 'cpu_stats'
-        ) {
-          prevChunkStats.push(event);
+      this.collectStatsEvents(prevChunk.events, prevChunkStats);
+    } else if (this.sessionIndex && segmentDir) {
+      const previousSegmentDir = findPreviousSegmentDir(
+        this.sessionIndex,
+        segmentDir,
+      );
+      if (previousSegmentDir) {
+        const previousManifest =
+          await source.getSegmentManifest(previousSegmentDir);
+        if (version !== preloader.getVersion()) return;
+        if (previousManifest) {
+          const previousEvents = await source
+            .readChunk(previousManifest.chunkCount - 1, previousSegmentDir)
+            .catch((error) => {
+              console.warn('[HistoryController] seek lookback failed:', error);
+              return [];
+            });
+          if (version !== preloader.getVersion()) return;
+          this.collectStatsEvents(previousEvents, prevChunkStats);
         }
       }
     }
@@ -251,6 +451,8 @@ export class HistoryController {
   async play(): Promise<void> {
     if (this.loadedChunkIndex === null) {
       await this.loadInitialPlaybackChunk();
+    } else if (this.player.getState() === 'done') {
+      await this.seek(this.sessionStartUs);
     }
     this.player.play(() => {
       console.warn('[HistoryController] player restart callback called', {
@@ -281,8 +483,17 @@ export class HistoryController {
   }
 
   durationUs(): number {
+    if (this.sessionIndex && this.sessionIndex.segments.length > 0) {
+      const lastPosition = this.sessionIndex.segments.length - 1;
+      const lastSegment = this.sessionIndex.segments[lastPosition];
+      const toUs =
+        getSegmentToUs(this.sessionIndex, lastPosition) ??
+        this.openSessionEndUs ??
+        (lastSegment.fromUs ?? 0) + this.sessionIndex.segmentDurationUs;
+      return toUs - this.sessionStartUs;
+    }
     if (this.manifest) return this.manifest.endUs - this.manifest.startUs;
-    return this.player.durationUs();
+    return 0;
   }
 
   getSessionStartUs(): number {
@@ -291,6 +502,17 @@ export class HistoryController {
 
   getTimelineEvents(): TimelineEvent[] {
     return this.timelineEvents;
+  }
+
+  private collectStatsEvents(
+    events: HistoryEvent[],
+    into: HistoryEvent[],
+  ): void {
+    for (const event of events) {
+      if (event.message === 'session_stats' || event.message === 'cpu_stats') {
+        into.push(event);
+      }
+    }
   }
 
   private getNextLogIndexFromTimestamp(timestampUs: number): number {

@@ -24,7 +24,6 @@ import {
   setSystemStats,
   bulkAddSystemStats,
 } from '@/shared/store/slices/sessionDetailsSlice';
-import { formatCompactTime } from '@/utils/formatting/time';
 import { extractPIDDynamic } from '../extractPIDDynamic';
 import { buildStatusSamplesFromStats } from '@/utils/metrics/statusMetricGraph';
 import { buildPIDSamplesFromFilterStats } from '@/utils/metrics/pidMetricGraph';
@@ -184,7 +183,7 @@ export function dispatchCpuStats(
 ): void {
   const stats = mapCpuStatsEvent(event);
   if (sessionStartUs > 0) {
-    stats.time = formatCompactTime(event.ts_us - sessionStartUs);
+    stats.sessionTimeUs = event.ts_us - sessionStartUs;
   }
   if (silent) {
     pendingCpuStats.push(stats);

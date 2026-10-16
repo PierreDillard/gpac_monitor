@@ -12,7 +12,6 @@ export function flattenLogEvents(logEvents: LogEvent[]): LogEvent[] {
     if (event.message !== 'log_batch') return [event];
     return event.logs.map(
       (log): LogEvent => ({
-        version: event.version,
         message: 'log_batch',
         ts_us: log.timestamp,
         logs: [log],

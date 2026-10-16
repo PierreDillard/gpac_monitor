@@ -18,7 +18,6 @@ const baseFilter: HistoryFilter = {
 const makeSnapshot = (
   overrides?: Partial<HistorySnapshot>,
 ): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,

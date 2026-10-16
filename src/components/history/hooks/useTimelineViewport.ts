@@ -1,58 +1,21 @@
-import { useReducer, useEffect, useCallback } from 'react';
+import { useReducer, useEffect, useCallback, useMemo } from 'react';
 import {
-  clampViewport,
-  zoomViewportAroundTime,
-  centerViewportOnTime,
-  type TimelineViewport,
-} from '@/utils/history/timelineViewport';
-
-type ViewportAction =
-  | { type: 'init'; sessionDurationUs: number }
-  | { type: 'zoom'; anchorTimeUs: number; zoomFactor: number }
-  | { type: 'center'; timeUs: number }
-  | { type: 'pan'; deltaUs: number };
-
-function fullViewport(sessionDurationUs: number): TimelineViewport {
-  return {
-    sessionDurationUs,
-    visibleStartUs: 0,
-    visibleDurationUs: sessionDurationUs,
-  };
-}
-
-function viewportReducer(
-  viewport: TimelineViewport,
-  action: ViewportAction,
-): TimelineViewport {
-  switch (action.type) {
-    case 'init':
-      return fullViewport(action.sessionDurationUs);
-    case 'zoom':
-      return zoomViewportAroundTime(
-        viewport,
-        action.anchorTimeUs,
-        action.zoomFactor,
-      );
-    case 'center':
-      return centerViewportOnTime(viewport, action.timeUs);
-    case 'pan':
-      return clampViewport({
-        ...viewport,
-        visibleStartUs: viewport.visibleStartUs + action.deltaUs,
-      });
-  }
-}
+  viewportReducer,
+  fullViewportState,
+  effectiveZoomTarget,
+} from '@/utils/history/timelineViewportReducer';
 
 /**
  * Local timeline zoom state for the history dock — no Redux.
- * Holds the visible window; whole-UI time sync stays driven by the player.
+ * Holds the visible window and the zoom target rectangle inside it.
  */
 export function useTimelineViewport(sessionDurationUs: number) {
-  const [viewport, dispatch] = useReducer(
+  const [state, dispatch] = useReducer(
     viewportReducer,
     sessionDurationUs,
-    fullViewport,
+    fullViewportState,
   );
+  const zoomTarget = useMemo(() => effectiveZoomTarget(state), [state]);
 
   useEffect(() => {
     dispatch({ type: 'init', sessionDurationUs });
@@ -71,6 +34,34 @@ export function useTimelineViewport(sessionDurationUs: number) {
     (deltaUs: number) => dispatch({ type: 'pan', deltaUs }),
     [],
   );
+  const moveZoomTarget = useCallback(
+    (deltaUs: number) => dispatch({ type: 'moveTarget', deltaUs }),
+    [],
+  );
+  const resizeZoomTarget = useCallback(
+    (edge: 'start' | 'end', timeUs: number) =>
+      dispatch({ type: 'resizeTarget', edge, timeUs }),
+    [],
+  );
+  const zoomToTarget = useCallback(
+    () => dispatch({ type: 'zoomToTarget' }),
+    [],
+  );
+  const setZoomTargetVisible = useCallback(
+    (visible: boolean) => dispatch({ type: 'setTargetVisible', visible }),
+    [],
+  );
 
-  return { viewport, zoomAround, centerOn, panBy };
+  return {
+    viewport: state.viewport,
+    zoomTarget,
+    zoomTargetVisible: state.zoomTargetVisible,
+    setZoomTargetVisible,
+    zoomAround,
+    centerOn,
+    panBy,
+    moveZoomTarget,
+    resizeZoomTarget,
+    zoomToTarget,
+  };
 }

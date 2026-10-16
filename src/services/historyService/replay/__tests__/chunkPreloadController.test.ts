@@ -49,12 +49,13 @@ describe('ChunkPreloadController', () => {
     appendLogs = vi.fn().mockResolvedValue(undefined);
   });
 
-  function makeController(chunkCount = 3) {
+  function makeController(chunkCount = 3, hasNextSegment = false) {
     return new ChunkPreloadController(
       loader as any,
       makeManifest(chunkCount),
       player,
       appendLogs,
+      hasNextSegment,
     );
   }
 
@@ -80,13 +81,23 @@ describe('ChunkPreloadController', () => {
       expect(loader.loadEventChunk).not.toHaveBeenCalled();
     });
 
-    it('marks no more events and skips load when at last chunk', () => {
-      const controller = makeController(2);
+    it('marks no more events and skips load when at last chunk of the last segment', () => {
+      const controller = makeController(2, false);
       controller.reset(1);
 
       controller.ensureOneChunkAhead();
 
       expect(player.setAwaitingMoreEvents).toHaveBeenCalledWith(false);
+      expect(loader.loadEventChunk).not.toHaveBeenCalled();
+    });
+
+    it('signals more events at manifest end when a next segment exists', () => {
+      const controller = makeController(2, true);
+      controller.reset(1);
+
+      controller.ensureOneChunkAhead();
+
+      expect(player.setAwaitingMoreEvents).toHaveBeenCalledWith(true);
       expect(loader.loadEventChunk).not.toHaveBeenCalled();
     });
 
@@ -113,8 +124,8 @@ describe('ChunkPreloadController', () => {
       expect(player.setAwaitingMoreEvents).toHaveBeenLastCalledWith(true);
     });
 
-    it('signals no more events after loading the last chunk', async () => {
-      const controller = makeController(2);
+    it('signals no more events after loading the last chunk of the last segment', async () => {
+      const controller = makeController(2, false);
       controller.reset(0);
       loader.loadEventChunk.mockResolvedValue(makeChunk(1));
 
@@ -122,6 +133,17 @@ describe('ChunkPreloadController', () => {
       await flushPromises();
 
       expect(player.setAwaitingMoreEvents).toHaveBeenLastCalledWith(false);
+    });
+
+    it('keeps signaling more events after loading the last chunk when a next segment exists', async () => {
+      const controller = makeController(2, true);
+      controller.reset(0);
+      loader.loadEventChunk.mockResolvedValue(makeChunk(1));
+
+      controller.ensureOneChunkAhead();
+      await flushPromises();
+
+      expect(player.setAwaitingMoreEvents).toHaveBeenLastCalledWith(true);
     });
 
     it('calls appendLogs with chunk and isStale function', async () => {

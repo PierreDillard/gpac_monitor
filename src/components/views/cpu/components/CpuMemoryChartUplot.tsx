@@ -31,7 +31,7 @@ export const CpuMemoryChartUplot = memo(
   }: CpuMemoryChartUplotProps) => {
     const { isHistory } = useDataMode();
     const systemStatsHistory = useSelector(selectSystemStatsHistory);
-    const timeLabelsRef = useRef<string[]>([]);
+    const dataPointsRef = useRef<CpuMemoryDataPoint[]>([]);
     const containerRef = useRef<HTMLDivElement>(null);
     const dimensions = useContainerSize(containerRef);
 
@@ -68,7 +68,7 @@ export const CpuMemoryChartUplot = memo(
     const historyDataPoints = useMemo((): CpuMemoryDataPoint[] => {
       return systemStatsHistory.map((s) => ({
         timestamp: s.timestamp / 1000,
-        time: s.time,
+        sessionTimeUs: s.sessionTimeUs,
         cpu_percent: s.process_cpu_usage,
         memory_mb: s.process_memory / (1024 * 1024),
       }));
@@ -80,7 +80,7 @@ export const CpuMemoryChartUplot = memo(
       () =>
         createCpuMemoryUplotConfig({
           memoryYAxisMax: stableYMax,
-          timeLabelsRef,
+          dataPointsRef,
           width: dimensions.width,
           height: dimensions.height,
         }),
@@ -88,9 +88,8 @@ export const CpuMemoryChartUplot = memo(
     );
 
     const data = useMemo(() => {
-      const { alignedData, timeLabels } = prepareCpuMemoryData(dataPoints);
-      timeLabelsRef.current = timeLabels;
-      return alignedData;
+      dataPointsRef.current = dataPoints;
+      return prepareCpuMemoryData(dataPoints).alignedData;
     }, [dataPoints]);
 
     return (

@@ -4,7 +4,7 @@ export interface SessionInfo {
   hasEvents: boolean;
   hasManifest: boolean;
   hasCheckpoints: boolean;
-  sizeBytes: number;
+  sizeBytes?: number;
   isComplete: boolean;
   startUs?: number;
   endUs?: number;
