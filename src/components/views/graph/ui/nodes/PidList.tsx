@@ -31,7 +31,7 @@ export default function PidList({
             {pids.map((pid) => (
               <div
                 key={pid.pid_index}
-                className="relative text-xs text-gray-100"
+                className="relative py-1 text-xs text-gray-100"
                 title={pid.name}
               >
                 <span className={`block truncate ${labelPaddingClass}`}>
