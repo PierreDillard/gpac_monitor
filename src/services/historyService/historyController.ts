@@ -107,10 +107,19 @@ export class HistoryController {
     if (!nextSegmentDir) return;
 
     const versionBeforeSwitch = currentPreloader.getVersion();
-    const manifest = await this.source.getSegmentManifest(nextSegmentDir);
-    const snapshot = await this.source.loadSegmentSnapshot(nextSegmentDir);
-    if (versionBeforeSwitch !== currentPreloader.getVersion() || !manifest)
+    let manifest: HistoryManifest;
+    let snapshot: HistorySnapshot;
+    try {
+      const nextManifest = await this.source.getSegmentManifest(nextSegmentDir);
+      if (!nextManifest) throw new Error(`no manifest for ${nextSegmentDir}`);
+      manifest = nextManifest;
+      snapshot = await this.source.loadSegmentSnapshot(nextSegmentDir);
+    } catch (error) {
+      console.warn('[HistoryController] segment rollover failed:', error);
+      this.notifyChunkUnreadable(0);
       return;
+    }
+    if (versionBeforeSwitch !== currentPreloader.getVersion()) return;
 
     const loader = new ChunkLoader(
       this.source,
