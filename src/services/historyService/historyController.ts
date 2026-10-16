@@ -280,10 +280,17 @@ export class HistoryController {
       segmentDir || manifest.journalIndex
         ? await source.loadJournalIndex()
         : null;
+    // Root indexes are append-only: skip markers of segments purged by retention.
+    const retainedFromUs = sessionIndex?.segments[0]?.fromUs ?? null;
     this.timelineEvents = [
       ...deriveTimelineEvents(eventsIndex, sessionStartUs),
       ...deriveErrorWarningEvents(journalIndex, sessionStartUs),
-    ].sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
+    ]
+      .filter(
+        (event) =>
+          retainedFromUs === null || event.absoluteTimeUs >= retainedFromUs,
+      )
+      .sort((left, right) => left.sessionTimeUs - right.sessionTimeUs);
     this.loader = new ChunkLoader(
       source,
       manifest,
