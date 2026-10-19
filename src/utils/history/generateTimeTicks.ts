@@ -14,22 +14,55 @@ const US = 1_000_000;
 
 const NICE_INTERVALS_US = [
   1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 21600, 43200,
-  86400,
+  86400, 172800, 432000, 604800,
 ].map((seconds) => seconds * US);
 
+const DAY_US = 86400 * US;
 const MAX_TICKS = 16;
+const LABEL_CHAR_WIDTH_PX = 6;
+const LABEL_GAP_PX = 12;
+
+const formatTickLabel = (tickUs: number) =>
+  formatCompactTime(tickUs, { trimWholeDays: true });
+
+export const estimateTickLabelWidthPx = (label: string) =>
+  label.length * LABEL_CHAR_WIDTH_PX;
+
+const fitsRulerWidth = (
+  intervalUs: number,
+  visibleEndUs: number,
+  visibleDurationUs: number,
+  rulerWidthPx: number,
+) => {
+  const lastTickUs = Math.floor(visibleEndUs / intervalUs) * intervalUs;
+  const widestLabel =
+    intervalUs % DAY_US === 0
+      ? formatTickLabel(lastTickUs)
+      : formatCompactTime(lastTickUs);
+  const spacingPx = (intervalUs / visibleDurationUs) * rulerWidthPx;
+  return spacingPx >= estimateTickLabelWidthPx(widestLabel) + LABEL_GAP_PX;
+};
 
 /** Ticks for an arbitrary visible window; labels are absolute session time. */
 export function generateWindowTimeTicks(
   visibleStartUs: number,
   visibleDurationUs: number,
+  rulerWidthPx?: number,
 ): TimeRuler {
   if (visibleDurationUs <= 0) return { major: [], minor: [] };
 
   const visibleEndUs = visibleStartUs + visibleDurationUs;
   const majorIntervalUs =
     NICE_INTERVALS_US.find(
-      (candidate) => visibleDurationUs / candidate <= MAX_TICKS,
+      (candidate) =>
+        visibleDurationUs / candidate <= MAX_TICKS &&
+        (rulerWidthPx === undefined ||
+          fitsRulerWidth(
+            candidate,
+            visibleEndUs,
+            visibleDurationUs,
+            rulerWidthPx,
+          )),
     ) ?? NICE_INTERVALS_US[NICE_INTERVALS_US.length - 1];
 
   const minorIntervalUs = majorIntervalUs / 5;
@@ -47,7 +80,7 @@ export function generateWindowTimeTicks(
   ) {
     major.push({
       positionPercent: toPercent(tickUs),
-      label: formatCompactTime(tickUs),
+      label: formatTickLabel(tickUs),
     });
   }
 

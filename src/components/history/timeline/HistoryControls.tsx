@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDataSource } from '@/services/dataSource/DataSourceContext';
 import { usePlayerState } from '@/services/historyService/usePlayerState';
 import { useTimelineEvents } from '@/services/historyService/useTimelineEvents';
-import { getDuration } from '@/services/historyService/manifestParser';
 import {
   TIMELINE_DOCK_DEFAULT_HEIGHT_PX,
   EVENTS_PANEL_WIDTH_PX,
@@ -10,22 +9,50 @@ import {
 import type { TimelineFilter } from './EventsFilter';
 import { useTimelineViewport } from '../hooks/useTimelineViewport';
 import { useTimelineLanes } from '../hooks/useTimelineLanes';
+import { useReplayNotifications } from '../hooks/useReplayNotifications';
 import { MIN_VISIBLE_DURATION_US } from '@/utils/history/timelineViewport';
-import { getCursorPercent } from '@/utils/history/timelineViewportView';
+import {
+  getCursorPercent,
+  sliceVisibleEvents,
+} from '@/utils/history/timelineViewportView';
+import {
+  getPlayStartUs,
+  getPagedStartUs,
+} from '@/utils/history/playbackWindow';
 import HistoryTimelineDock from './HistoryTimelineDock';
+import ZoomTargetOverlay from './ZoomTargetOverlay';
 
 const HistoryControls = () => {
-  const { mode, manifest } = useDataSource();
-  const { state, currentTimeUs, play, pause, seek } = usePlayerState();
+  const { mode } = useDataSource();
+  const {
+    state,
+    currentTimeUs,
+    durationUs,
+    sessionStartUs,
+    play,
+    playFrom,
+    pause,
+    seek,
+  } = usePlayerState();
+  useReplayNotifications();
   const [dockHeight, setDockHeight] = useState(TIMELINE_DOCK_DEFAULT_HEIGHT_PX);
   const [panelWidth, setPanelWidth] = useState(EVENTS_PANEL_WIDTH_PX);
 
   const maxDockHeight = useMemo(() => Math.round(window.innerHeight * 0.6), []);
-  const durationUs = manifest ? getDuration(manifest) : 0;
-  const sessionStartUs = manifest?.startUs ?? 0;
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>('all');
   const allEvents = useTimelineEvents();
-  const { viewport, zoomAround } = useTimelineViewport(durationUs);
+  const {
+    viewport,
+    zoomTarget,
+    zoomTargetVisible,
+    setZoomTargetVisible,
+    zoomAround,
+    centerOn,
+    panBy,
+    moveZoomTarget,
+    resizeZoomTarget,
+    zoomToTarget,
+  } = useTimelineViewport(durationUs);
 
   const filteredEvents = useMemo(
     () =>
@@ -35,13 +62,32 @@ const HistoryControls = () => {
     [allEvents, activeFilter],
   );
 
+  const journalEvents = useMemo(
+    () => sliceVisibleEvents(viewport, filteredEvents),
+    [viewport, filteredEvents],
+  );
+
   const playheadSessionUs = currentTimeUs - sessionStartUs;
   const lanes = useTimelineLanes(filteredEvents, viewport);
   const elapsedUs = Math.max(0, Math.min(playheadSessionUs, durationUs));
   const playheadPercent = getCursorPercent(viewport, elapsedUs);
 
+  const windowCenterUs =
+    viewport.visibleStartUs + viewport.visibleDurationUs / 2;
   const canZoomIn = viewport.visibleDurationUs > MIN_VISIBLE_DURATION_US;
   const canZoomOut = viewport.visibleDurationUs < viewport.sessionDurationUs;
+
+  useEffect(() => {
+    if (state !== 'playing') return;
+    const pagedStartUs = getPagedStartUs(viewport, elapsedUs);
+    if (pagedStartUs !== null) panBy(pagedStartUs - viewport.visibleStartUs);
+  }, [state, viewport, elapsedUs, panBy]);
+
+  const handlePlay = () => {
+    const startUs = getPlayStartUs(viewport, elapsedUs, state === 'done');
+    if (startUs === elapsedUs) play();
+    else playFrom(sessionStartUs + startUs);
+  };
 
   if (mode !== 'history') return null;
 
@@ -54,20 +100,37 @@ const HistoryControls = () => {
       onPanelResize={setPanelWidth}
       activeFilter={activeFilter}
       onFilterChange={setActiveFilter}
-      journalEvents={filteredEvents}
+      journalEvents={journalEvents}
       sessionStartUs={sessionStartUs}
       currentTimeUs={currentTimeUs}
       durationUs={durationUs}
       viewport={viewport}
       isPlaying={state === 'playing'}
-      onPlay={play}
+      onPlay={handlePlay}
       onPause={pause}
       onSeek={seek}
+      onSeekToSessionTime={(sessionTimeUs) => {
+        seek(sessionStartUs + sessionTimeUs);
+        centerOn(sessionTimeUs);
+      }}
       lanes={lanes}
       elapsedUs={elapsedUs}
       playheadPercent={playheadPercent}
-      onZoomIn={() => zoomAround(playheadSessionUs, 0.5)}
-      onZoomOut={() => zoomAround(playheadSessionUs, 2)}
+      onPan={panBy}
+      onRulerClick={() => setZoomTargetVisible(true)}
+      railOverlay={
+        zoomTargetVisible && (
+          <ZoomTargetOverlay
+            viewport={viewport}
+            zoomTarget={zoomTarget}
+            onMove={moveZoomTarget}
+            onResizeEdge={resizeZoomTarget}
+            onHide={() => setZoomTargetVisible(false)}
+          />
+        )
+      }
+      onZoomIn={zoomToTarget}
+      onZoomOut={() => zoomAround(windowCenterUs, 2)}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
     />

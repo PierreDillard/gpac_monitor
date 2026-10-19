@@ -36,7 +36,6 @@ const baseFilter: HistoryFilter = {
 const makeCheckpoint = (
   overrides?: Partial<HistoryCheckpoint>,
 ): HistoryCheckpoint => ({
-  version: 1,
   ts_us: 5_000_000,
   graph_v: 1,
   filters: [baseFilter],
@@ -44,7 +43,6 @@ const makeCheckpoint = (
 });
 
 const makeSnapshot = (filters: HistoryFilter[]): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,

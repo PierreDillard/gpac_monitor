@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HistoryController } from '../historyController';
-import type { HistorySource, HistoryManifest } from '../source/types';
+import { HistoryAdapter } from '../integration/historyAdapter';
+import type {
+  HistorySource,
+  HistoryManifest,
+  HistorySessionIndex,
+} from '../source/types';
 import type { HistorySnapshot } from '../types';
 
 const makeManifest = (): HistoryManifest => ({
@@ -12,7 +17,6 @@ const makeManifest = (): HistoryManifest => ({
 });
 
 const makeSnapshot = (): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -25,6 +29,10 @@ function makeSource(): HistorySource {
     getManifest: vi.fn().mockResolvedValue(makeManifest()),
     loadSnapshot: vi.fn().mockResolvedValue(makeSnapshot()),
     loadJournalIndex: vi.fn().mockResolvedValue(null),
+    getSessionIndex: vi.fn().mockResolvedValue(null),
+    getSegmentManifest: vi.fn(),
+    loadSegmentSnapshot: vi.fn(),
+    loadGlobalEventsIndex: vi.fn().mockResolvedValue(null),
     readChunk: vi.fn(),
     readLogChunk: vi.fn(),
     readCheckpoint: vi.fn(),
@@ -45,5 +53,141 @@ describe('HistoryController.load', () => {
     expect(source.readChunk).not.toHaveBeenCalled();
     expect(source.readLogChunk).not.toHaveBeenCalled();
     expect(source.readCheckpoint).not.toHaveBeenCalled();
+  });
+
+  it('segmented session loads the first segment manifest and snapshot', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 10_000_000,
+      retentionMaxSegments: 3,
+      segments: [{ index: 0, fromUs: 0 }],
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi.fn().mockResolvedValue(makeManifest());
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+    const dispatch = vi.fn();
+
+    await controller.load(source, dispatch as any);
+
+    expect(source.getSegmentManifest).toHaveBeenCalledOnce();
+    expect(source.getSegmentManifest).toHaveBeenCalledWith('segments/0000');
+    expect(source.loadSegmentSnapshot).toHaveBeenCalledOnce();
+    expect(source.loadSegmentSnapshot).toHaveBeenCalledWith('segments/0000');
+    expect(source.getManifest).not.toHaveBeenCalled();
+    expect(source.loadSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('hydrates with the root session startUs, not the surviving segment manifest startUs', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 20_000_000,
+      retentionMaxSegments: 3,
+      segments: [{ index: 3, fromUs: 60_000_000 }],
+    };
+    const survivingSegmentManifest: HistoryManifest = {
+      ...makeManifest(),
+      startUs: 60_000_000,
+      endUs: 80_000_000,
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi
+      .fn()
+      .mockResolvedValue(survivingSegmentManifest);
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+    const hydrateSpy = vi.spyOn(HistoryAdapter.prototype, 'hydrate');
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(hydrateSpy).toHaveBeenCalledWith(expect.anything(), 0);
+    hydrateSpy.mockRestore();
+  });
+});
+
+describe('HistoryController.durationUs', () => {
+  it('legacy session: endUs - startUs from the manifest', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(controller.durationUs()).toBe(10_000_000);
+  });
+
+  it('closed segmented session: total duration across segments', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      endUs: 25_000_000,
+      segmentDurationUs: 10_000_000,
+      retentionMaxSegments: 3,
+      segments: [
+        { index: 0, fromUs: 0, toUs: 10_000_000 },
+        { index: 1, fromUs: 10_000_000 },
+      ],
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi.fn().mockResolvedValue(makeManifest());
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(controller.durationUs()).toBe(25_000_000);
+  });
+
+  it('short torn session: real end from the segment manifest, not segmentDurationUs', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 86_400_000_000,
+      retentionMaxSegments: 30,
+      segments: [{ index: 0, fromUs: 0 }],
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi
+      .fn()
+      .mockResolvedValue({ ...makeManifest(), endUs: 45_000_000 });
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(controller.durationUs()).toBe(45_000_000);
+  });
+
+  it('torn multi-segment session: real end from the last segment manifest', async () => {
+    const controller = new HistoryController();
+    const source = makeSource();
+    const sessionIndex: HistorySessionIndex = {
+      version: 1,
+      startUs: 0,
+      segmentDurationUs: 10_000_000,
+      retentionMaxSegments: 3,
+      segments: [
+        { index: 0, fromUs: 0 },
+        { index: 1, fromUs: 10_000_000 },
+      ],
+    };
+    source.getSessionIndex = vi.fn().mockResolvedValue(sessionIndex);
+    source.getSegmentManifest = vi.fn((segmentDir: string) =>
+      Promise.resolve(
+        segmentDir.endsWith('0001')
+          ? { ...makeManifest(), startUs: 10_000_000, endUs: 13_000_000 }
+          : makeManifest(),
+      ),
+    );
+    source.loadSegmentSnapshot = vi.fn().mockResolvedValue(makeSnapshot());
+
+    await controller.load(source, vi.fn() as any);
+
+    expect(controller.durationUs()).toBe(13_000_000);
   });
 });

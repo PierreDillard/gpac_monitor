@@ -14,6 +14,7 @@ interface LineHistoryChartProps {
   series: SeriesDef[];
   data: uPlot.AlignedData;
   formatX: (v: number) => string;
+  formatAxisX?: (v: number) => string;
   leftAxisFormat?: (value: number) => string;
   rightAxisFormat?: (value: number) => string;
   showCurrentTime?: boolean;
@@ -27,6 +28,7 @@ const LineHistoryChart = memo(
     series,
     data,
     formatX,
+    formatAxisX,
     leftAxisFormat,
     showCurrentTime = true,
     showEndLabels = true,
@@ -42,6 +44,7 @@ const LineHistoryChart = memo(
         createLineChartConfig({
           series,
           formatX,
+          formatAxisX,
           leftAxis: leftAxisFormat ? { formatY: leftAxisFormat } : undefined,
           rightAxis: rightAxisFormat ? { formatY: rightAxisFormat } : undefined,
           onEndLabels: showEndLabels ? setEndLabels : undefined,
@@ -50,6 +53,7 @@ const LineHistoryChart = memo(
       [
         series,
         formatX,
+        formatAxisX,
         dimensions,
         leftAxisFormat,
         rightAxisFormat,

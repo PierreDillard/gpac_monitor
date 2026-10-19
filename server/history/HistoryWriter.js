@@ -1,6 +1,7 @@
 import * as std from 'std';
 import * as os from 'os';
 import { ChunkStream } from './helpers/ChunkStream.js';
+import { buildJournalPointer, serializeJournalIndex } from './helpers/journalIndex.js';
 import { CHUNK_DURATION_US, MAX_LOG_PER_CHUNK, MANIFEST_REFRESH_US } from '../config/history.config.js';
 
 function writeFileAtomic(path, content) {
@@ -22,6 +23,11 @@ function formatSessionId(date) {
     return `${datePart}_${timePart}`;
 }
 
+/**
+ * HistoryWriter - writes one segment's chunks/logs/checkpoints/manifest to disk.
+ * @param {string} historyDir
+ * @param {string} [sessionId]
+ */
 function HistoryWriter(historyDir, sessionId) {
     const baseDir = historyDir || 'history';
     const id = sessionId || formatSessionId(new Date());
@@ -80,26 +86,14 @@ function HistoryWriter(historyDir, sessionId) {
 
     this._writeJournalIndex = function() {
         if (this._journalTsUs.length === 0) return;
-        const baseTsUs = this._journalTsUs[0];
-        const journalIndex = {
-            baseTsUs,
-            tsDeltaUs: this._journalTsUs.map((tsUs) => tsUs - baseTsUs),
-            types: this._journalTypes,
-        };
-        writeFileAtomic(`${dir}/journal_index.json`, JSON.stringify(journalIndex) + '\n');
+        writeFileAtomic(
+            `${dir}/journal_index.json`,
+            JSON.stringify(serializeJournalIndex(this._journalTsUs, this._journalTypes)) + '\n'
+        );
     };
 
     this._getJournalPointer = function() {
-        if (this._journalTsUs.length === 0) return undefined;
-        const errorCount = this._journalTypes.filter((type) => type === 1).length;
-        const warningCount = this._journalTypes.filter((type) => type === 2).length;
-        return {
-            file: 'journal_index.json',
-            format: 'columnar-delta-v1',
-            eventCount: this._journalTsUs.length,
-            errorCount,
-            warningCount,
-        };
+        return buildJournalPointer(this._journalTsUs, this._journalTypes);
     };
 
     this._writeManifest = function() {
@@ -182,4 +176,4 @@ function HistoryWriter(historyDir, sessionId) {
     };
 }
 
-export { HistoryWriter };
+export { HistoryWriter, writeFileAtomic, formatSessionId };

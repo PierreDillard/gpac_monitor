@@ -38,6 +38,7 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
     const [activeTab, setActiveTab] = useState('main');
     const [isResizing, setIsResizing] = useState(false);
     const tabsRef = useRef<HTMLDivElement>(null);
+    const detachedContentRef = useRef<HTMLDivElement>(null);
 
     // Resize Handling
     const { ref } = useOptimizedResize({
@@ -110,15 +111,11 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
 
     // Auto-scroll to bottom when widget is detached
     useEffect(() => {
-      if (isDetached) {
-        requestAnimationFrame(() => {
-          const scroller = document.querySelector('main');
-          scroller?.scrollTo({
-            top: scroller.scrollHeight,
-            behavior: 'smooth',
-          });
-        });
-      }
+      if (!isDetached) return;
+      const frameId = requestAnimationFrame(() => {
+        detachedContentRef.current?.scrollIntoView({ block: 'nearest' });
+      });
+      return () => cancelAnimationFrame(frameId);
     }, [isDetached]);
 
     // Disable callbacks during resize to avoid expensive re-renders
@@ -148,7 +145,7 @@ const MultiFilterMonitor: React.FC<WidgetProps> = React.memo(
 
       return (
         <WidgetWrapper id={id}>
-          <div className="h-full">
+          <div ref={detachedContentRef} className="h-full">
             <MonitoredFilterContent
               idx={filter.idx}
               filter={filter}

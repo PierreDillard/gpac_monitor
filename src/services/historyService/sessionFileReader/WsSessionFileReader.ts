@@ -4,11 +4,20 @@ import type {
   LogEvent,
   JournalIndex,
 } from '../types';
-import type { HistoryManifest } from '../source/types';
+import type {
+  HistoryManifest,
+  HistorySessionIndex,
+  ManifestEventEntry,
+} from '../source/types';
 import type { SessionInfo } from './types';
 import { parseEventsJsonl } from '../loader/eventLoader';
 import { parseManifest } from '../manifestParser';
-import { parseJournalIndex } from '../journalIndexParser';
+import { parseJournalIndex, parseJournalJsonl } from '../journalIndexParser';
+import { parseSessionIndex, parseEventsIndex } from '../sessionIndexParser';
+
+function segmentFile(file: string, segmentDir?: string): string {
+  return segmentDir ? `${segmentDir}/${file}` : file;
+}
 
 /**
  * WsSessionFileReader — reads history sessions from a remote GPAC server over WebSocket.
@@ -58,23 +67,29 @@ export class WsSessionFileReader {
     return response.sessions as SessionInfo[];
   }
 
-  async readSnapshot(sessionId: string): Promise<HistorySnapshot> {
+  async readSnapshot(
+    sessionId: string,
+    segmentDir?: string,
+  ): Promise<HistorySnapshot> {
     await this.ensureConnected();
     const response = await this.sendCommand({
       message: 'read_file',
       sessionId,
-      file: 'snapshot.json',
+      file: segmentFile('snapshot.json', segmentDir),
     });
     return JSON.parse(response.content as string) as HistorySnapshot;
   }
 
-  async readManifest(sessionId: string): Promise<HistoryManifest | null> {
+  async readManifest(
+    sessionId: string,
+    segmentDir?: string,
+  ): Promise<HistoryManifest | null> {
     await this.ensureConnected();
     try {
       const response = await this.sendCommand({
         message: 'read_file',
         sessionId,
-        file: 'manifest.json',
+        file: segmentFile('manifest.json', segmentDir),
       });
       return parseManifest(JSON.parse(response.content as string));
     } catch {
@@ -82,8 +97,57 @@ export class WsSessionFileReader {
     }
   }
 
+  async readSessionIndex(
+    sessionId: string,
+  ): Promise<HistorySessionIndex | null> {
+    await this.ensureConnected();
+    let content: string;
+    try {
+      const response = await this.sendCommand({
+        message: 'read_file',
+        sessionId,
+        file: 'session.json',
+      });
+      content = response.content as string;
+    } catch {
+      return null;
+    }
+    return parseSessionIndex(JSON.parse(content));
+  }
+
+  async readEventsIndex(
+    sessionId: string,
+  ): Promise<ManifestEventEntry[] | null> {
+    await this.ensureConnected();
+    try {
+      const response = await this.sendCommand({
+        message: 'read_file',
+        sessionId,
+        file: 'events_index.jsonl',
+      });
+      return parseEventsIndex(parseEventsJsonl(response.content as string));
+    } catch {
+      return null;
+    }
+  }
+
   async readJournalIndex(sessionId: string): Promise<JournalIndex | null> {
     await this.ensureConnected();
+    try {
+      const response = await this.sendCommand({
+        message: 'read_file',
+        sessionId,
+        file: 'journal_index.jsonl',
+      });
+      return parseJournalJsonl(response.content as string);
+    } catch {
+      return this.readLegacyJournalIndex(sessionId);
+    }
+  }
+
+  private async readLegacyJournalIndex(
+    sessionId: string,
+  ): Promise<JournalIndex | null> {
     try {
       const response = await this.sendCommand({
         message: 'read_file',
@@ -99,9 +163,13 @@ export class WsSessionFileReader {
   async readCheckpoint(
     sessionId: string,
     chunkIndex: number,
+    segmentDir?: string,
   ): Promise<unknown> {
     await this.ensureConnected();
-    const file = `checkpoints/cp_${String(chunkIndex).padStart(4, '0')}.json`;
+    const file = segmentFile(
+      `checkpoints/cp_${String(chunkIndex).padStart(4, '0')}.json`,
+      segmentDir,
+    );
     try {
       const response = await this.sendCommand({
         message: 'read_file',
@@ -117,39 +185,39 @@ export class WsSessionFileReader {
   async readChunk(
     sessionId: string,
     chunkIndex: number,
+    segmentDir?: string,
   ): Promise<HistoryEvent[]> {
     await this.ensureConnected();
-    const file = `chunks/chunk_${String(chunkIndex).padStart(4, '0')}.jsonl`;
-    try {
-      const response = await this.sendCommand({
-        message: 'read_file',
-        sessionId,
-        file,
-      });
-      return parseEventsJsonl(response.content as string);
-    } catch {
-      return [];
-    }
+    const file = segmentFile(
+      `chunks/chunk_${String(chunkIndex).padStart(4, '0')}.jsonl`,
+      segmentDir,
+    );
+    const response = await this.sendCommand({
+      message: 'read_file',
+      sessionId,
+      file,
+    });
+    return parseEventsJsonl(response.content as string);
   }
 
   async readLogChunk(
     sessionId: string,
     chunkIndex: number,
+    segmentDir?: string,
   ): Promise<LogEvent[]> {
     await this.ensureConnected();
-    const file = `logs/logs_${String(chunkIndex).padStart(4, '0')}.jsonl`;
-    try {
-      const response = await this.sendCommand({
-        message: 'read_file',
-        sessionId,
-        file,
-      });
-      return parseEventsJsonl(
-        response.content as string,
-      ) as unknown as LogEvent[];
-    } catch {
-      return [];
-    }
+    const file = segmentFile(
+      `logs/logs_${String(chunkIndex).padStart(4, '0')}.jsonl`,
+      segmentDir,
+    );
+    const response = await this.sendCommand({
+      message: 'read_file',
+      sessionId,
+      file,
+    });
+    return parseEventsJsonl(
+      response.content as string,
+    ) as unknown as LogEvent[];
   }
 
   private async ensureConnected(): Promise<void> {

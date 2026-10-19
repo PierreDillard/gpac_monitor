@@ -1,168 +1,169 @@
 import type { HistorySnapshot, LogEvent, JournalIndex } from '../types';
 import type { SessionInfo } from './types';
-import type { HistoryManifest } from '../source/types';
+import type {
+  HistoryManifest,
+  HistorySessionIndex,
+  ManifestEventEntry,
+} from '../source/types';
 import { parseEventsJsonl } from '../loader/eventLoader';
 import { parseManifest } from '../manifestParser';
-import { parseJournalIndex } from '../journalIndexParser';
+import { parseJournalIndex, parseJournalJsonl } from '../journalIndexParser';
+import { parseSessionIndex, parseEventsIndex } from '../sessionIndexParser';
+import {
+  directoryEntryLookup,
+  fileListLookup,
+  type SessionFileLookup,
+} from './sessionFileLookup';
 
-const emptyEntry = (): SessionEntry => ({
-  done: false,
-  chunks: new Map(),
-  logChunks: new Map(),
-  checkpoints: new Map(),
-});
-
-interface SessionEntry {
-  snapshot?: File;
-  events?: File;
-  manifest?: File;
-  journalIndex?: File;
-  chunks: Map<number, File>;
-  logChunks: Map<number, File>;
-  checkpoints: Map<number, File>;
-  done: boolean;
-}
+const padded = (index: number) => String(index).padStart(4, '0');
 
 /**
- * LocalFileSessionFileReader — reads history sessions from browser File objects .
- * No server involved: all data comes from the File API (webkitRelativePath).
- * Same interface as WsSessionFileReader so ChunkLoader works with either.
+ * LocalFileSessionFileReader — reads history sessions from a FileList or a dropped
+ * folder. Paths are session-relative, the same string WsSessionFileReader sends as
+ * `file`, so both readers address segmented sessions identically.
  */
 export class LocalFileSessionFileReader {
-  private sessionMap = new Map<string, SessionEntry>();
+  private lookup: SessionFileLookup;
 
-  /** Indexes all files by session, routing chunks/logs/checkpoints by parent folder name. */
-  constructor(files: File[]) {
-    for (const file of files) {
-      const parts = file.webkitRelativePath.split('/');
-      if (parts.length < 2) continue;
-
-      const fileName = parts[parts.length - 1];
-      const parentFolder = parts[parts.length - 2];
-
-      if (parentFolder === 'chunks') {
-        if (parts.length < 3) continue;
-        const sessionId = parts[parts.length - 3];
-        const chunkMatch = fileName.match(/^chunk_(\d+)\.jsonl$/);
-        if (!chunkMatch) continue;
-        const chunkIndex = parseInt(chunkMatch[1], 10);
-        if (!this.sessionMap.has(sessionId))
-          this.sessionMap.set(sessionId, emptyEntry());
-        this.sessionMap.get(sessionId)!.chunks.set(chunkIndex, file);
-      } else if (parentFolder === 'logs') {
-        if (parts.length < 3) continue;
-        const sessionId = parts[parts.length - 3];
-        const logMatch = fileName.match(/^logs_(\d+)\.jsonl$/);
-        if (!logMatch) continue;
-        const logIndex = parseInt(logMatch[1], 10);
-        if (!this.sessionMap.has(sessionId))
-          this.sessionMap.set(sessionId, emptyEntry());
-        this.sessionMap.get(sessionId)!.logChunks.set(logIndex, file);
-      } else if (parentFolder === 'checkpoints') {
-        if (parts.length < 3) continue;
-        const sessionId = parts[parts.length - 3];
-        const cpMatch = fileName.match(/^cp_(\d+)\.json$/);
-        if (!cpMatch) continue;
-        const cpIndex = parseInt(cpMatch[1], 10);
-        if (!this.sessionMap.has(sessionId))
-          this.sessionMap.set(sessionId, emptyEntry());
-        this.sessionMap.get(sessionId)!.checkpoints.set(cpIndex, file);
-      } else {
-        const sessionId = parentFolder;
-        if (!this.sessionMap.has(sessionId))
-          this.sessionMap.set(sessionId, emptyEntry());
-        const entry = this.sessionMap.get(sessionId)!;
-        if (fileName === 'snapshot.json') entry.snapshot = file;
-        else if (fileName === 'events.jsonl') entry.events = file;
-        else if (fileName === 'manifest.json') entry.manifest = file;
-        else if (fileName === 'journal_index.json') entry.journalIndex = file;
-        else if (fileName === 'done') entry.done = true;
-      }
-    }
+  constructor(source: File[] | FileSystemDirectoryEntry) {
+    this.lookup = Array.isArray(source)
+      ? fileListLookup(source)
+      : directoryEntryLookup(source);
   }
 
   async listSessions(): Promise<SessionInfo[]> {
+    const sessionIds = await this.lookup.sessionIds();
     return Promise.all(
-      Array.from(this.sessionMap.entries())
-        .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
-        .map(async ([sessionId, entry]) => {
-          let startUs: number | undefined;
-          let endUs: number | undefined;
-          if (entry.manifest) {
-            try {
-              const manifest = JSON.parse(await entry.manifest.text());
-              startUs = manifest.startUs;
-              endUs = manifest.endUs;
-            } catch {
-              console.error(`startUs and endUs undefined`);
-            }
-          }
-          return {
-            sessionId,
-            hasSnapshot: !!entry.snapshot,
-            hasEvents: !!entry.events,
-            hasManifest: !!entry.manifest,
-            hasCheckpoints: entry.checkpoints.size > 0,
-            sizeBytes: (entry.snapshot?.size ?? 0) + (entry.events?.size ?? 0),
-            isComplete: entry.done,
-            startUs,
-            endUs,
-          };
-        }),
+      sessionIds
+        .sort((first, second) => (first < second ? 1 : first > second ? -1 : 0))
+        .map((sessionId) => this.buildSessionInfo(sessionId)),
     );
   }
 
-  async readSnapshot(sessionId: string): Promise<HistorySnapshot> {
-    const file = this.sessionMap.get(sessionId)?.snapshot;
+  private async buildSessionInfo(sessionId: string): Promise<SessionInfo> {
+    const has = (path: string) => this.lookup.has(sessionId, path);
+    const isSegmented = await has('session.json');
+    let range: { startUs?: number | null; endUs?: number } = {};
+    let dataDir = '';
+
+    try {
+      if (isSegmented) {
+        const sessionIndex = await this.readSessionIndex(sessionId);
+        range = sessionIndex ?? {};
+        const firstSegment = sessionIndex?.segments[0];
+        if (firstSegment) dataDir = `segments/${padded(firstSegment.index)}/`;
+      } else {
+        range =
+          (await this.readJson<typeof range>(sessionId, 'manifest.json')) ?? {};
+      }
+    } catch {
+      console.error(`[LocalFileSessionFileReader] ${sessionId}: bad index`);
+    }
+
+    const [snapshot, chunks, checkpoints] = await Promise.all(
+      ['snapshot.json', 'chunks', 'checkpoints'].map((name) =>
+        has(dataDir + name),
+      ),
+    );
+    const [eventsFile, manifest, done] = await Promise.all(
+      ['events.jsonl', 'manifest.json', 'done'].map(has),
+    );
+    return {
+      sessionId,
+      hasSnapshot: snapshot,
+      hasEvents: eventsFile || chunks,
+      hasManifest: manifest || isSegmented,
+      hasCheckpoints: checkpoints,
+      isComplete: isSegmented ? range.endUs !== undefined : done,
+      startUs: range.startUs ?? undefined,
+      endUs: range.endUs,
+    };
+  }
+
+  private file(sessionId: string, name: string, segmentDir?: string) {
+    const path = segmentDir ? `${segmentDir}/${name}` : name;
+    return this.lookup.file(sessionId, path);
+  }
+
+  private async readJson<T>(
+    sessionId: string,
+    name: string,
+    segmentDir?: string,
+  ): Promise<T | null> {
+    const file = await this.file(sessionId, name, segmentDir);
+    if (!file) return null;
+    try {
+      return JSON.parse(await file.text()) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  private async readJsonl(sessionId: string, name: string, dir?: string) {
+    const file = await this.file(sessionId, name, dir);
+    return file ? parseEventsJsonl(await file.text()) : [];
+  }
+
+  async readSnapshot(sessionId: string, segmentDir?: string) {
+    const file = await this.file(sessionId, 'snapshot.json', segmentDir);
     if (!file) throw new Error(`No snapshot for session ${sessionId}`);
     return JSON.parse(await file.text()) as HistorySnapshot;
   }
 
-  async readManifest(sessionId: string): Promise<HistoryManifest | null> {
-    const file = this.sessionMap.get(sessionId)?.manifest;
+  async readManifest(
+    sessionId: string,
+    segmentDir?: string,
+  ): Promise<HistoryManifest | null> {
+    const raw = await this.readJson(sessionId, 'manifest.json', segmentDir);
+    return raw ? parseManifest(raw) : null;
+  }
+
+  async readSessionIndex(
+    sessionId: string,
+  ): Promise<HistorySessionIndex | null> {
+    const file = await this.file(sessionId, 'session.json');
     if (!file) return null;
-    try {
-      return parseManifest(JSON.parse(await file.text()));
-    } catch {
-      return null;
-    }
+    return parseSessionIndex(JSON.parse(await file.text()));
+  }
+
+  async readEventsIndex(
+    sessionId: string,
+  ): Promise<ManifestEventEntry[] | null> {
+    const file = await this.file(sessionId, 'events_index.jsonl');
+    return file ? parseEventsIndex(parseEventsJsonl(await file.text())) : null;
   }
 
   async readJournalIndex(sessionId: string): Promise<JournalIndex | null> {
-    const file = this.sessionMap.get(sessionId)?.journalIndex;
-    if (!file) return null;
-    try {
-      return parseJournalIndex(JSON.parse(await file.text()));
-    } catch {
-      return null;
-    }
+    const file = await this.file(sessionId, 'journal_index.jsonl');
+    if (file) return parseJournalJsonl(await file.text());
+    const raw = await this.readJson(sessionId, 'journal_index.json');
+    return raw ? parseJournalIndex(raw) : null;
   }
 
   async readCheckpoint(
     sessionId: string,
     chunkIndex: number,
+    segmentDir?: string,
   ): Promise<unknown> {
-    const file = this.sessionMap.get(sessionId)?.checkpoints.get(chunkIndex);
-    if (!file) return null;
-    try {
-      return JSON.parse(await file.text());
-    } catch {
-      return null;
-    }
+    const name = `checkpoints/cp_${padded(chunkIndex)}.json`;
+    return this.readJson(sessionId, name, segmentDir);
   }
 
-  async readChunk(sessionId: string, chunkIndex: number) {
-    const file = this.sessionMap.get(sessionId)?.chunks.get(chunkIndex);
-    if (!file) return [];
-    return parseEventsJsonl(await file.text());
+  async readChunk(sessionId: string, chunkIndex: number, segmentDir?: string) {
+    const name = `chunks/chunk_${padded(chunkIndex)}.jsonl`;
+    return this.readJsonl(sessionId, name, segmentDir);
   }
 
   async readLogChunk(
     sessionId: string,
     chunkIndex: number,
+    segmentDir?: string,
   ): Promise<LogEvent[]> {
-    const file = this.sessionMap.get(sessionId)?.logChunks.get(chunkIndex);
-    if (!file) return [];
-    return parseEventsJsonl(await file.text()) as unknown as LogEvent[];
+    const name = `logs/logs_${padded(chunkIndex)}.jsonl`;
+    return (await this.readJsonl(
+      sessionId,
+      name,
+      segmentDir,
+    )) as unknown as LogEvent[];
   }
 }

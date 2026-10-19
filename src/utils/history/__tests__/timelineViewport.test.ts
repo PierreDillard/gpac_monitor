@@ -51,7 +51,7 @@ describe('clampViewport', () => {
 });
 
 describe('zoomViewportAroundTime', () => {
-  it('halves the window and keeps the anchor ratio', () => {
+  it('halves the window and centers it on the anchor', () => {
     const result = zoomViewportAroundTime(fullViewport, 30_000_000, 0.5);
     expect(result.visibleDurationUs).toBe(SESSION_US / 2);
     expect(result.visibleStartUs).toBe(15_000_000);
@@ -70,6 +70,19 @@ describe('zoomViewportAroundTime', () => {
   it('caps the window at sessionDuration when zooming out', () => {
     const result = zoomViewportAroundTime(fullViewport, 30_000_000, 4);
     expect(result.visibleDurationUs).toBe(SESSION_US);
+  });
+
+  it('keeps the area right of the anchor visible near the end of a 72h session', () => {
+    const hourUs = 3_600_000_000;
+    const longSession: TimelineViewport = {
+      sessionDurationUs: 72 * hourUs,
+      visibleStartUs: 0,
+      visibleDurationUs: 72 * hourUs,
+    };
+    const anchorUs = 71 * hourUs + 43 * 60_000_000 + 32_000_000;
+    const result = zoomViewportAroundTime(longSession, anchorUs, 0.5);
+    expect(result.visibleDurationUs).toBe(36 * hourUs);
+    expect(result.visibleStartUs + result.visibleDurationUs).toBe(72 * hourUs);
   });
 });
 

@@ -1,1 +1,5 @@
-export const open = () => ({ puts: () => {}, close: () => {} });
+export const open = () => ({
+  puts: () => {},
+  flush: () => {},
+  close: () => {},
+});

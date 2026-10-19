@@ -4,7 +4,6 @@ import type { HistorySource, HistoryManifest } from '../source/types';
 import type { HistorySnapshot, LogEvent } from '../types';
 
 const makeSnapshot = (): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -17,6 +16,10 @@ function makeSource(manifest: HistoryManifest): HistorySource {
     getManifest: vi.fn().mockResolvedValue(manifest),
     loadSnapshot: vi.fn().mockResolvedValue(makeSnapshot()),
     loadJournalIndex: vi.fn().mockResolvedValue(null),
+    getSessionIndex: vi.fn().mockResolvedValue(null),
+    getSegmentManifest: vi.fn(),
+    loadSegmentSnapshot: vi.fn(),
+    loadGlobalEventsIndex: vi.fn().mockResolvedValue(null),
     readChunk: vi.fn().mockResolvedValue([]),
     readLogChunk: vi.fn().mockResolvedValue([]),
     readCheckpoint: vi.fn().mockResolvedValue(null),
@@ -33,7 +36,6 @@ const oneChunk: HistoryManifest = {
 
 function makeLogEvent(ts_us: number): LogEvent {
   return {
-    version: 1,
     message: 'log_batch',
     ts_us,
     logs: [

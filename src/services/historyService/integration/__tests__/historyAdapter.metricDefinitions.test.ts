@@ -27,7 +27,6 @@ const selectDefs = (store: ReturnType<typeof makeStore>) =>
   store.getState().sessionStats.metricDefinitions;
 
 const makeSnapshot = (session_metrics?: string | null): HistorySnapshot => ({
-  version: 1,
   ts_us: 0,
   command_line: null,
   graph_v: 1,
@@ -36,7 +35,6 @@ const makeSnapshot = (session_metrics?: string | null): HistorySnapshot => ({
 });
 
 const makeCheckpoint = (metric_defs?: string | null): HistoryCheckpoint => ({
-  version: 1,
   ts_us: 1000,
   graph_v: 1,
   filters: [],

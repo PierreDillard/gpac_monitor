@@ -31,7 +31,7 @@ const NetworkTab = memo(
 
     const { duration, setDuration, maxPoints } = useChartDuration(
       NETWORK_HISTORY_STORAGE_KEY,
-      '1min',
+      '5min',
       1000,
     );
 

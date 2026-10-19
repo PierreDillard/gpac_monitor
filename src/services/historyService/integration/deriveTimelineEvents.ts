@@ -1,4 +1,4 @@
-import type { HistoryManifest } from '../source/types';
+import type { ManifestEventEntry } from '../source/types';
 import type { JournalIndex, TimelineEvent, TimelineEventType } from '../types';
 
 const TITLES: Record<TimelineEventType, string> = {
@@ -15,11 +15,12 @@ const JOURNAL_TYPE_CODES: Record<number, TimelineEventType> = {
 };
 
 export function deriveTimelineEvents(
-  manifest: HistoryManifest,
+  eventsIndex: ManifestEventEntry[],
+  startUs: number,
 ): TimelineEvent[] {
-  return (manifest.eventsIndex ?? []).map((entry) => ({
+  return eventsIndex.map((entry) => ({
     id: `${entry.type}_${entry.ts_us}`,
-    sessionTimeUs: entry.ts_us - manifest.startUs,
+    sessionTimeUs: entry.ts_us - startUs,
     absoluteTimeUs: entry.ts_us,
     type: entry.type,
     title: TITLES[entry.type],

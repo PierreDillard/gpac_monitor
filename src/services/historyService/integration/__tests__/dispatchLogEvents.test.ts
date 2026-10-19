@@ -16,7 +16,6 @@ function makeLogLine(timestamp: number): GpacLogEntry {
 
 function makeLogBatchEvent(timestamp: number): LogEvent {
   return {
-    version: 1,
     message: 'log_batch',
     ts_us: timestamp,
     logs: [makeLogLine(timestamp)],
@@ -48,7 +47,6 @@ describe('dispatchLogEvents', () => {
   it('flushes pending logs before an interleaved config change, then resumes accumulating', () => {
     const dispatch = vi.fn();
     const configEvent: LogEvent = {
-      version: 1,
       message: 'log_config_changed',
       ts_us: 2,
       logLevel: 'all@warning',

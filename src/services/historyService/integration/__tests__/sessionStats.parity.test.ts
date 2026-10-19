@@ -28,7 +28,6 @@ const pid = (buffer: number, stats: Record<string, number>) =>
 
 const makeEvent = (tsUs: number, bytes: number): SessionStatsEvent =>
   ({
-    version: 1,
     message: 'session_stats',
     all_packets_done: false,
     ts_us: tsUs,

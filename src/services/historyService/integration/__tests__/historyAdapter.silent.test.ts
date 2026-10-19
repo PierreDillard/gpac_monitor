@@ -8,7 +8,6 @@ import type {
 
 /** Real-ish events derived from server/history/1774943115615/events.jsonl */
 const sessionStatsEvent: SessionStatsEvent = {
-  version: 1,
   message: 'session_stats',
   ts_us: 1237805,
   all_packets_done: false,
@@ -44,7 +43,6 @@ const sessionStatsEvent: SessionStatsEvent = {
 
 /** Second tick — bandwidth is a rate, so it needs a previous reference. */
 const sessionStatsEvent2: SessionStatsEvent = {
-  version: 1,
   message: 'session_stats',
   ts_us: 2237805,
   all_packets_done: false,
@@ -79,7 +77,6 @@ const sessionStatsEvent2: SessionStatsEvent = {
 };
 
 const cpuStatsEvent: CpuStatsEvent = {
-  version: 1,
   message: 'cpu_stats',
   ts_us: 237464,
   stats: {
@@ -170,7 +167,6 @@ describe('HistoryAdapter silent mode', () => {
 
   it('dispatches setFilterPids on filter_pid_reconfigured (non-silent)', () => {
     const event: PidReconfiguredEvent = {
-      version: 1,
       message: 'filter_pid_reconfigured',
       ts_us: 1000,
       indexes: [3],
@@ -188,7 +184,6 @@ describe('HistoryAdapter silent mode', () => {
   it('buffers filter_pid_reconfigured in silent mode, dispatches on flush', () => {
     adapter.setSilent(true);
     const event: PidReconfiguredEvent = {
-      version: 1,
       message: 'filter_pid_reconfigured',
       ts_us: 1000,
       indexes: [5],
