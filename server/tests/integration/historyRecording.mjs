@@ -1,5 +1,5 @@
 // Second GPAC container, launched with -rmt-log (see backend-integration.yml)
-const port = 6391;
+const port = 6390;
 const replyTimeoutMs = 5000;
 // Shared budget for connecting and waiting for the first recorded session
 const recordDeadline = Date.now() + 15000;
