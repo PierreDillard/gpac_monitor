@@ -69,7 +69,7 @@ const firstSegment = sessionIndex.segments && sessionIndex.segments[0];
 if (!firstSegment) fail(`session.json has no segment: ${sessionReply.content}`);
 
 // 4. The manifest lives inside the segment directory, e.g. segments/0000/manifest.json
-const manifestFile = `${firstSegment.dir}/manifest.json`;
+const manifestFile = `segments/${String(firstSegment.index).padStart(4, '0')}/manifest.json`;
 const manifestReply = await request(socket, 'read_file', 'read_file', { sessionId: recordedSession.sessionId, file: manifestFile });
 if (manifestReply.status !== 'ok') fail(`${manifestFile} read failed: ${manifestReply.error} ${manifestReply.detail}`);
 const manifest = parseJson(manifestFile, manifestReply.content);
