@@ -94,7 +94,7 @@ const events = (await readSessionFile(chunkFile))
     .split('\n')
     .filter((line) => line.trim())
     .map((line) => parseJson(chunkFile, line));
-const outOfRange = events.filter((event) => event.ts_us < closedChunk.fromUs || event.ts_us > closedChunk.fromUs);
+const outOfRange = events.filter((event) => event.ts_us < closedChunk.fromUs || event.ts_us > closedChunk.toUs);
 console.log(`chunk ${chunkFile} range [${closedChunk.fromUs}, ${closedChunk.toUs}] events ${events.length}/${closedChunk.count} waited ${Date.now() - rotationStartMs} ms`);
 if (events.length === 0) fail(`${chunkFile} has no event`);
 if (events.length !== closedChunk.count) fail(`${chunkFile} has ${events.length} events, manifest says ${closedChunk.count}`);
