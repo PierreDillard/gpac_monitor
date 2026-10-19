@@ -61,19 +61,44 @@ while (!recordedSession) {
 }
 console.log(`session ${recordedSession.sessionId}`);
 
+async function readSessionFile(file) {
+    const reply = await request(socket, 'read_file', 'read_file', { sessionId: recordedSession.sessionId, file });
+    if (reply.status !== 'ok') fail(`${file} read failed: ${reply.error} ${reply.detail}`);
+    return reply.content;
+}
+
 // 3. session.json is the session root index: it lists the daily segments
-const sessionReply = await request(socket, 'read_file', 'read_file', { sessionId: recordedSession.sessionId, file: 'session.json' });
-if (sessionReply.status !== 'ok') fail(`session.json read failed: ${sessionReply.error} ${sessionReply.detail}`);
-const sessionIndex = parseJson('session.json', sessionReply.content);
+const sessionIndex = parseJson('session.json', await readSessionFile('session.json'));
 const firstSegment = sessionIndex.segments && sessionIndex.segments[0];
-if (!firstSegment) fail(`session.json has no segment: ${sessionReply.content}`);
+if (!firstSegment) fail(`session.json has no segment: ${JSON.stringify(sessionIndex)}`);
 
 // 4. The manifest lives inside the segment directory, e.g. segments/0000/manifest.json
-const manifestFile = `segments/${String(firstSegment.index).padStart(4, '0')}/manifest.json`;
-const manifestReply = await request(socket, 'read_file', 'read_file', { sessionId: recordedSession.sessionId, file: manifestFile });
-if (manifestReply.status !== 'ok') fail(`${manifestFile} read failed: ${manifestReply.error} ${manifestReply.detail}`);
-const manifest = parseJson(manifestFile, manifestReply.content);
+const segmentDir = `segments/${String(firstSegment.index).padStart(4, '0')}`;
+const manifestFile = `${segmentDir}/manifest.json`;
+let manifest = parseJson(manifestFile, await readSessionFile(manifestFile));
 console.log(`manifest ${manifestFile} keys ${JSON.stringify(Object.keys(manifest).sort())}`);
+
+// 5. eventChunks also lists the open chunk last: the first one is closed once there are two
+const rotationStartMs = Date.now();
+const rotationDeadline = rotationStartMs + 20000;
+while (!(manifest.eventChunks && manifest.eventChunks.length >= 2)) {
+    if (Date.now() > rotationDeadline) fail(`no closed chunk: ${JSON.stringify(manifest.eventChunks)}`);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    manifest = parseJson(manifestFile, await readSessionFile(manifestFile));
+}
+const closedChunk = manifest.eventChunks[0];
+
+// 6. Read the closed chunk the way the app does and check every event lies in its range
+const chunkFile = `${segmentDir}/${closedChunk.file}`;
+const events = (await readSessionFile(chunkFile))
+    .split('\n')
+    .filter((line) => line.trim())
+    .map((line) => parseJson(chunkFile, line));
+const outOfRange = events.filter((event) => event.ts_us < closedChunk.fromUs || event.ts_us > closedChunk.toUs);
+console.log(`chunk ${chunkFile} range [${closedChunk.fromUs}, ${closedChunk.toUs}] events ${events.length}/${closedChunk.count} waited ${Date.now() - rotationStartMs} ms`);
+if (events.length === 0) fail(`${chunkFile} has no event`);
+if (events.length !== closedChunk.count) fail(`${chunkFile} has ${events.length} events, manifest says ${closedChunk.count}`);
+if (outOfRange.length > 0) fail(`${outOfRange.length} events outside the chunk range, first ts_us ${outOfRange[0].ts_us}`);
 
 socket.close();
 process.exit(0);

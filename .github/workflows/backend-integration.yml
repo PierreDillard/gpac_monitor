@@ -65,7 +65,7 @@ jobs:
         run: timeout 40 node server/tests/integration/clientIsolation.mjs
 
       - name: History recording
-        run: timeout 30 node server/tests/integration/historyRecording.mjs
+        run: timeout 45 node server/tests/integration/historyRecording.mjs
 
       - name: GPAC diagnostics
         if: always()
